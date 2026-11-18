@@ -52,9 +52,21 @@ Siblings at one level:
 
 Order: governing thought → key-line points in array order → deepen only as needed. Do not add claims absent from the tree. Do not lead with SCQA story unless the user asks for a full memo intro; SCQA lives in the JSON either way.
 
+## Inline pyramid diagram
+
+Every reply includes a Mermaid `flowchart TB` view of the tree. Prefer `scripts/render-pyramid.py`.
+
+- Top node: shortened `governingThought`.
+- Next row: shortened `keyLine` claims, linked from the top.
+- Deeper rows: children only (claim nodes). Never draw `support` figures on the diagram.
+- Shorten labels to roughly 40 characters. Full claims and figures stay in the JSON.
+
 ## What not to do
 
 - Do not ship essay-only output.
+- Do not ship JSON without the pyramid diagram.
 - Do not bury the answer under chronology of research.
 - Do not use overlapping sibling claims ("better UX" and "easier to use").
 - Do not attach evidence that supports a different claim than its parent.
+- Do not put full support figures into diagram labels.
+

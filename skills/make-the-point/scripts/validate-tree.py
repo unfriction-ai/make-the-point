@@ -7,7 +7,7 @@ Usage:
   python3 scripts/validate-tree.py --fixtures
 
 Normal mode exits 0 only when every file passes. --self-test exits 0 when packaged
-fixtures match expected pass/fail.
+fixtures match expected pass/fail and the valid tree renders a short-label pyramid.
 """
 
 from __future__ import annotations
@@ -15,6 +15,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import subprocess
 import sys
 from pathlib import Path
 from typing import Any
@@ -196,7 +197,8 @@ def validate_file(path: Path) -> int:
 
 
 def run_self_test() -> int:
-    fixture_dir = Path(__file__).resolve().parent.parent / "fixtures"
+    skill_dir = Path(__file__).resolve().parent.parent
+    fixture_dir = skill_dir / "fixtures"
     cases = [
         (fixture_dir / "valid-analyze.json", True),
         (fixture_dir / "invalid-missing-support.json", False),
@@ -219,6 +221,31 @@ def run_self_test() -> int:
             print(f"UNEXPECTED    {path} (wanted pass={should_pass})")
             for err in errors:
                 print(f"  - {err}")
+
+    render = Path(__file__).resolve().parent / "render-pyramid.py"
+    valid = fixture_dir / "valid-analyze.json"
+    example = skill_dir / "examples" / "valid-analyze.md"
+    proc = subprocess.run(
+        [sys.executable, str(render), str(valid), "--check"],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    sys.stdout.write(proc.stdout)
+    sys.stderr.write(proc.stderr)
+    if proc.returncode != 0:
+        failed += 1
+    elif not example.is_file():
+        print(f"FAIL missing example {example}")
+        failed += 1
+    else:
+        text = example.read_text(encoding="utf-8")
+        if "```mermaid" not in text or "```json" not in text:
+            print(f"FAIL {example}: must show mermaid and json fences")
+            failed += 1
+        else:
+            print(f"OK             {example}")
+
     return 1 if failed else 0
 
 

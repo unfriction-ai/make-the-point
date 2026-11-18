@@ -3,18 +3,19 @@ name: make-the-point
 description: >-
   Understand, construct, and communicate the central argument in writing via the
   Minto Pyramid Principle. Accepts text, a link, or an image. Canonical output
-  is a testable ArgumentTree JSON; prose is generated or analyzed only from that
-  tree. Use for /make-the-point or when the user wants pyramid structuring,
-  SCQA, governing thought, key-line, MECE argument trees, or eval-friendly
-  reading/writing of arguments.
+  is a testable ArgumentTree JSON plus an inline Mermaid pyramid diagram with
+  shortened labels; prose is generated or analyzed only from that tree. Use for
+  /make-the-point or when the user wants pyramid structuring, SCQA, governing
+  thought, key-line, MECE argument trees, or eval-friendly reading/writing of
+  arguments.
 disable-model-invocation: true
 ---
 
 # Make the point
 
-Build or extract an **ArgumentTree**. The tree is the product. Prose is a view of the tree.
+Build or extract an **ArgumentTree**. The tree is the product. The pyramid diagram and prose are views of the tree.
 
-Method: [Minto Pyramid Principle](https://piramideschrijven.com/minto-pyramid-principle/). Schema: [argument-tree.schema.json](argument-tree.schema.json). Rules detail: [pyramid.md](pyramid.md).
+Method: [Minto Pyramid Principle](https://piramideschrijven.com/minto-pyramid-principle/). Schema: [argument-tree.schema.json](argument-tree.schema.json). Rules: [pyramid.md](pyramid.md). Example reply: [examples/valid-analyze.md](examples/valid-analyze.md).
 
 ## Inputs
 
@@ -39,20 +40,35 @@ If the mode is unclear: **analyze** when source writing exists; **construct** wh
 python3 ${CLAUDE_SKILL_DIR}/scripts/validate-tree.py path/to/tree.json
 ```
 
-From the repository root, the same check is:
+From the repository root:
 
 ```bash
 python3 skills/make-the-point/scripts/validate-tree.py path/to/tree.json
 ```
 
-Fix until exit 0. Do not treat freeform essay as done.
+7. Render the inline pyramid from that JSON (prefer the script so labels stay consistent):
+
+```bash
+python3 ${CLAUDE_SKILL_DIR}/scripts/render-pyramid.py path/to/tree.json
+```
+
+From the repository root:
+
+```bash
+python3 skills/make-the-point/scripts/render-pyramid.py path/to/tree.json
+```
+
+Fix until validate exits 0. Do not treat freeform essay as done.
 
 ## Output contract
 
-- Reply with the ArgumentTree JSON (fenced `json` block) as the primary artifact.
-- Put `prose` inside the JSON when the user wants readable text.
-- Short human summary after the JSON is fine. The JSON is what evals score.
-- Put uncertainty in `notes`, not by inventing nodes.
+Reply in this order:
+
+1. **Pyramid diagram** — one fenced `mermaid` `flowchart TB`. Governing thought (`GT`) on top, each `keyLine` child under it, deeper nodes under their parents. Node labels are shortened claims (about 40 characters). Omit `support` figures from the diagram. Full claims and figures stay only in the JSON.
+2. **ArgumentTree JSON** — fenced `json` block. This is what evals score.
+3. Optional one-line human summary after the JSON.
+
+Match [examples/valid-analyze.md](examples/valid-analyze.md). Put uncertainty in `notes`, not by inventing nodes.
 
 ## Decision rules
 
@@ -62,6 +78,7 @@ Fix until exit 0. Do not treat freeform essay as done.
 - Horizontal: do not mix inductive grouping with a deductive chain on the same sibling set.
 - Analyze mode maps the source. Prefer the author's point. If the source has no clear point, say so in `notes` and still force a best-effort tree.
 - Construct mode invents structure for the user's intent, then drafts prose from it.
+- Diagram labels never invent wording absent from the claim. Shorten only.
 
 ## Structural check
 
@@ -75,4 +92,4 @@ From the repository root:
 python3 skills/make-the-point/scripts/validate-tree.py --self-test
 ```
 
-Must exit 0. Packaged fixtures encode one valid tree and one deliberate failure.
+Must exit 0. Packaged fixtures encode one valid tree, one deliberate failure, and a pyramid render check on the valid tree.

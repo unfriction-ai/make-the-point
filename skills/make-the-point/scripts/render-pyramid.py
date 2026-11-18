@@ -48,7 +48,7 @@ def ellipsize(text: str, max_chars: int) -> str:
     return cut.rstrip(".,;:") + "…"
 
 
-def layout_label(text: str, max_chars: int = LABEL_MAX, max_lines: int = LABEL_LINES) -> list[str]:
+def wrap_and_ellipsize_tail(text: str, max_chars: int = LABEL_MAX, max_lines: int = LABEL_LINES) -> list[str]:
     cleaned = " ".join(text.split())
     if not cleaned:
         return [""]
@@ -113,9 +113,9 @@ def render_svg(data: dict[str, Any]) -> str:
         raise ValueError("keyLine must contain at least one node")
 
     gt_chars, key_chars = LABEL_MAX, key_width(n)
-    gt_label = layout_label(data["governingThought"], gt_chars, LABEL_LINES)
+    gt_label = wrap_and_ellipsize_tail(data["governingThought"], gt_chars, LABEL_LINES)
     keys = [
-        (node["id"], layout_label(node["claim"], key_chars, LABEL_LINES))
+        (node["id"], wrap_and_ellipsize_tail(node["claim"], key_chars, LABEL_LINES))
         for node in data["keyLine"]
     ]
 
@@ -204,11 +204,11 @@ def mermaid_text(lines: list[str]) -> str:
 def render_mermaid(data: dict[str, Any]) -> str:
     if len(data["keyLine"]) < 1:
         raise ValueError("keyLine must contain at least one node")
-    gt_lines = layout_label(data["governingThought"], LABEL_MAX, LABEL_LINES)
+    gt_lines = wrap_and_ellipsize_tail(data["governingThought"], LABEL_MAX, LABEL_LINES)
     used = {"GT"}
     ids = [mermaid_id(node["id"], used) for node in data["keyLine"]]
     key_lines = [
-        layout_label(node["claim"], LABEL_MAX, LABEL_LINES) for node in data["keyLine"]
+        wrap_and_ellipsize_tail(node["claim"], LABEL_MAX, LABEL_LINES) for node in data["keyLine"]
     ]
     rows = ["flowchart TB", f'  GT["{mermaid_text(gt_lines)}"]']
     for mid, lines in zip(ids, key_lines):
@@ -269,8 +269,8 @@ def render_ansi(data: dict[str, Any]) -> str:
         raise ValueError("keyLine must contain at least one node")
 
     key_inner = key_width(n)
-    gt_lines = layout_label(data["governingThought"], LABEL_MAX, LABEL_LINES)
-    key_wrapped = [layout_label(node["claim"], key_inner, LABEL_LINES) for node in keys]
+    gt_lines = wrap_and_ellipsize_tail(data["governingThought"], LABEL_MAX, LABEL_LINES)
+    key_wrapped = [wrap_and_ellipsize_tail(node["claim"], key_inner, LABEL_LINES) for node in keys]
     key_boxes = [make_box(lines, key_inner) for lines in key_wrapped]
     gap = 1
     key_row = hjoin(key_boxes, gap)
@@ -357,9 +357,9 @@ def check_fitted_labels(
 
 
 def label_entries(data: dict[str, Any], gt_chars: int, key_chars: int) -> list[tuple[str, list[str]]]:
-    entries = [("governingThought", layout_label(data["governingThought"], gt_chars, LABEL_LINES))]
+    entries = [("governingThought", wrap_and_ellipsize_tail(data["governingThought"], gt_chars, LABEL_LINES))]
     for node in data["keyLine"]:
-        entries.append((node["id"], layout_label(node["claim"], key_chars, LABEL_LINES)))
+        entries.append((node["id"], wrap_and_ellipsize_tail(node["claim"], key_chars, LABEL_LINES)))
     return entries
 
 

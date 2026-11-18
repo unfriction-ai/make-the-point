@@ -1,0 +1,19 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "make-the-point",
+  "version": "0.1.0",
+  "description": "Understand, construct, and communicate the central argument via the Minto Pyramid Principle. Canonical output is a testable ArgumentTree.",
+  "author": {
+    "name": "Unfriction"
+  },
+  "homepage": "https://github.com/unfriction-ai/make-the-point",
+  "repository": "https://github.com/unfriction-ai/make-the-point",
+  "license": "Apache-2.0",
+  "keywords": [
+    "minto",
+    "pyramid",
+    "argument-tree",
+    "writing",
+    "scqa"
+  ]
+}

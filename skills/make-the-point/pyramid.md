@@ -54,12 +54,13 @@ Order: governing thought → key-line points in array order → deepen only as n
 
 ## Inline pyramid diagram
 
-Every reply includes a Mermaid `flowchart TB` view of the tree. Prefer `scripts/render-pyramid.py`.
+Every reply includes an **SVG card pyramid** from `scripts/render-pyramid.py`.
 
-- Top node: shortened `governingThought`.
-- Next row: shortened `keyLine` claims, linked from the top.
-- Deeper rows: children only (claim nodes). Never draw `support` figures on the diagram.
-- Shorten labels to roughly 40 characters. Full claims and figures stay in the JSON.
+- Purple card: shortened `governingThought`.
+- Teal cards: shortened `keyLine` claims, linked with elbow connectors.
+- **Shallow view only:** governing thought + keyLine. Deeper `children` and `support` stay in the JSON.
+- Shorten labels to roughly 40 characters.
+- Do not use Mermaid flowcharts for this view.
 
 ## What not to do
 
@@ -69,4 +70,6 @@ Every reply includes a Mermaid `flowchart TB` view of the tree. Prefer `scripts/
 - Do not use overlapping sibling claims ("better UX" and "easier to use").
 - Do not attach evidence that supports a different claim than its parent.
 - Do not put full support figures into diagram labels.
+- Do not expand the diagram into a deep flowchart of every child node.
+
 

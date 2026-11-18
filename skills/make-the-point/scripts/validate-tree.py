@@ -240,8 +240,11 @@ def run_self_test() -> int:
         failed += 1
     else:
         text = example.read_text(encoding="utf-8")
-        if "```mermaid" not in text or "```json" not in text:
-            print(f"FAIL {example}: must show mermaid and json fences")
+        if "<svg" not in text or "```json" not in text:
+            print(f"FAIL {example}: must show SVG pyramid and json fence")
+            failed += 1
+        elif "#5B2C6F" not in text or "#0E6655" not in text:
+            print(f"FAIL {example}: SVG must use purple/teal card fills")
             failed += 1
         else:
             print(f"OK             {example}")

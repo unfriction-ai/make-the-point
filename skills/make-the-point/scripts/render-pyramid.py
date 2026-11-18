@@ -3,20 +3,25 @@
 
 The diagram shows governingThought and keyLine only. Deeper children and
 support figures stay in the JSON. svg is the default and has no page fill.
+svg and ansi lay out for --width: container pixels for svg (default 720) and
+terminal columns for ansi (default 80). Key-line cards that do not fit one row
+wrap onto balanced rows. mermaid ignores --width.
 
 Usage:
-  python3 scripts/render-pyramid.py <tree.json> [--format svg|mermaid|ansi]
-  python3 scripts/render-pyramid.py <tree.json> --check [--format svg|mermaid|ansi]
-  python3 scripts/render-pyramid.py <tree.json> --write out.txt [--format svg|mermaid|ansi]
+  python3 scripts/render-pyramid.py <tree.json> [--format svg|mermaid|ansi] [--width N]
+  python3 scripts/render-pyramid.py <tree.json> --check [--format svg|mermaid|ansi] [--width N]
+  python3 scripts/render-pyramid.py <tree.json> --write out.txt [--format svg|mermaid|ansi] [--width N]
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import math
 import re
 import sys
-from html import escape
+from dataclasses import dataclass
+from html import escape, unescape
 from pathlib import Path
 from typing import Any, Callable
 
@@ -30,8 +35,55 @@ CONNECTOR = "#9a9a9a"
 PAGE_FILL = "#141414"
 
 
-def key_width(n: int) -> int:
-    return 26 if n <= 4 else 18
+@dataclass(frozen=True)
+class Metrics:
+    default_width: int
+    margin: float
+    gap: float
+    min_card: float
+    max_card: float
+    max_gt: float
+    key_font: float
+    gt_font: float
+    char_w: float
+    pad_x: float
+    pad_y: float
+    line_gap: float
+    row_gap: float
+    bar_offset: float
+    grid: bool
+
+    def line_h(self, font: float) -> float:
+        return font + self.line_gap
+
+    def text_chars(self, box_w: float, font: float) -> int:
+        return int((box_w - 2 * self.pad_x) / (self.char_w * font))
+
+    def text_w(self, line: str, font: float) -> float:
+        return len(line) * self.char_w * font
+
+    def box_h(self, lines: int, font: float) -> float:
+        return lines * self.line_h(font) + 2 * self.pad_y
+
+    def half(self, v: float) -> float:
+        return v // 2 if self.grid else v / 2
+
+
+# char_w is a fraction of font size. ansi boxes use pad_x 2 for the border plus
+# one space, and grid coordinates are cells, so a box spans [x, x + w). An odd
+# ansi gap gives the trunk between two rows a centre column.
+METRICS: dict[str, Metrics] = {
+    "svg": Metrics(
+        default_width=720, margin=20, gap=16, min_card=150, max_card=300, max_gt=560,
+        key_font=14, gt_font=16, char_w=0.52, pad_x=12, pad_y=12, line_gap=4,
+        row_gap=48, bar_offset=24, grid=False,
+    ),
+    "ansi": Metrics(
+        default_width=80, margin=0, gap=3, min_card=20, max_card=40, max_gt=64,
+        key_font=1, gt_font=1, char_w=1, pad_x=2, pad_y=1, line_gap=0,
+        row_gap=3, bar_offset=1, grid=True,
+    ),
+}
 
 
 def ellipsize(text: str, max_chars: int) -> str:
@@ -74,6 +126,18 @@ def wrap_and_ellipsize_tail(text: str, max_chars: int = LABEL_MAX, max_lines: in
     return lines or [""]
 
 
+def wrap_balanced(text: str, max_chars: int, max_lines: int = LABEL_LINES) -> list[str]:
+    """Wrap at the narrowest width that keeps the greedy line count, so no line is an orphan."""
+    lines = wrap_and_ellipsize_tail(text, max_chars, max_lines)
+    if len(lines) < 2 or any("…" in line for line in lines):
+        return lines
+    for chars in range(max(len(w) for w in text.split()), max_chars):
+        tighter = wrap_and_ellipsize_tail(text, chars, max_lines)
+        if len(tighter) == len(lines) and not any("…" in line for line in tighter):
+            return tighter
+    return lines
+
+
 def collect_support(nodes: list[dict[str, Any]], out: list[str]) -> None:
     for node in nodes:
         for item in node.get("support") or []:
@@ -93,92 +157,177 @@ def deeper_nodes(nodes: list[dict[str, Any]], out: list[dict[str, Any]]) -> None
                 deeper_nodes([child], out)
 
 
-def svg_text_block(lines: list[str], x: float, y: float, font_size: int = 13) -> str:
-    line_h = font_size + 3
-    start = y - ((len(lines) - 1) * line_h) / 2
+@dataclass(frozen=True)
+class Box:
+    x: float
+    y: float
+    w: float
+    h: float
+    lines: tuple[str, ...]
+    node_id: str | None = None
+
+
+@dataclass(frozen=True)
+class Row:
+    cards: tuple[Box, ...]
+    centers: tuple[float, ...]
+    bar_y: float
+    feed_x: float
+    feed_y: float
+    out_x: float | None
+
+
+@dataclass(frozen=True)
+class Layout:
+    metrics: Metrics
+    width: float
+    height: float
+    gt: Box
+    rows: tuple[Row, ...]
+
+    def boxes(self) -> list[Box]:
+        return [self.gt, *(card for row in self.rows for card in row.cards)]
+
+    def wires(self) -> list[tuple[float, float, float, float]]:
+        out = []
+        for row in self.rows:
+            out.append((row.feed_x, row.feed_y, row.feed_x, row.bar_y))
+            xs = [*row.centers, row.feed_x] + ([row.out_x] if row.out_x is not None else [])
+            if min(xs) != max(xs):
+                out.append((min(xs), row.bar_y, max(xs), row.bar_y))
+        return out
+
+    def drops(self) -> list[tuple[float, float, float, float]]:
+        edge = 1 if self.metrics.grid else 0
+        return [
+            (x, row.bar_y, x, card.y - edge)
+            for row in self.rows
+            for x, card in zip(row.centers, row.cards)
+        ]
+
+    def label_entries(self) -> list[tuple[str, list[str]]]:
+        return [("governingThought", list(self.gt.lines))] + [
+            (card.node_id or "", list(card.lines)) for row in self.rows for card in row.cards
+        ]
+
+
+def balanced_rows(n: int, per_row: int) -> list[int]:
+    """Split n cards into the fewest rows of at most per_row, larger rows last.
+
+    A lone card goes last instead: above another row, the trunk would have to
+    route around it.
+    """
+    rows = -(-n // per_row)
+    base, extra = divmod(n, rows)
+    sizes = [base + (1 if i >= rows - extra else 0) for i in range(rows)]
+    return sizes[1:] + sizes[:1] if rows > 1 and sizes[0] == 1 else sizes
+
+
+def min_width(m: Metrics) -> int:
+    return math.ceil(2 * m.min_card + m.gap + 2 * m.margin)
+
+
+def layout(data: dict[str, Any], m: Metrics, width: int) -> Layout:
+    keys = data["keyLine"]
+    n = len(keys)
+    if n < 1:
+        raise ValueError("keyLine must contain at least one node")
+    if width < min_width(m):
+        raise ValueError(f"--width {width} is too narrow; use at least {min_width(m)}")
+
+    grid = int(m.grid)
+    # One spare grid column absorbs the rounding when rows centre on the axis.
+    usable = width - 2 * m.margin - grid
+    per_row = int((usable + m.gap) // (m.min_card + m.gap))
+    counts = balanced_rows(n, per_row)
+    widest = max(counts)
+    card_w = min(m.max_card, (usable - (widest - 1) * m.gap) / widest)
+    card_w = math.floor(card_w) if grid else card_w
+    key_chars = m.text_chars(card_w, m.key_font)
+    pitch = card_w + m.gap
+    gap_mid = m.gap - m.half(m.gap)
+
+    # Every row is placed against one axis so the stem, the trunks, and the
+    # middle drops share a column after rounding to cells.
+    axis = m.half(width)
+    gt_w = min(usable + grid, m.max_gt)
+    gt_lines = wrap_balanced(data["governingThought"], m.text_chars(gt_w, m.gt_font))
+    if grid:
+        # Terminal text is left-aligned, so a box wider than its text reads as a hole.
+        gt_w = min(gt_w, max(len(line) for line in gt_lines) + 2 * m.pad_x)
+    gt = Box(axis - m.half(gt_w), m.margin, gt_w, m.box_h(len(gt_lines), m.gt_font), tuple(gt_lines))
+
+    feed_x, feed_y = axis, gt.y + gt.h - grid
+    top = gt.y + gt.h
+    rows: list[Row] = []
+    start = 0
+    for i, k in enumerate(counts):
+        labels = [
+            (node["id"], wrap_balanced(node["claim"], key_chars))
+            for node in keys[start : start + k]
+        ]
+        start += k
+        h = m.box_h(max(len(lines) for _, lines in labels), m.key_font)
+        y = top + m.row_gap
+        middle = (k // 2) * pitch
+        x0 = axis - middle - m.half(card_w) if k % 2 else axis - middle + gap_mid
+        cards = tuple(
+            Box(x0 + j * pitch, y, card_w, h, tuple(lines), node_id)
+            for j, (node_id, lines) in enumerate(labels)
+        )
+        centers = tuple(card.x + m.half(card_w) for card in cards)
+        # The trunk to the next row runs down the gap left of the middle card.
+        out_x = cards[k // 2].x - gap_mid if i < len(counts) - 1 else None
+        bar_y = top + m.bar_offset
+        rows.append(Row(cards, centers, bar_y, feed_x, feed_y, out_x))
+        if out_x is not None:
+            feed_x, feed_y = out_x, bar_y
+        top = y + h
+    return Layout(m, width, top + m.margin, gt, tuple(rows))
+
+
+def svg_text_block(box: Box, font: float, m: Metrics) -> str:
+    line_h = m.line_h(font)
+    top = box.y + (box.h - len(box.lines) * line_h) / 2
+    cx = box.x + box.w / 2
     chunks = []
-    for i, line in enumerate(lines):
-        yy = start + i * line_h
+    for i, line in enumerate(box.lines):
+        baseline = top + i * line_h + (line_h + 0.7 * font) / 2
         chunks.append(
-            f'<text x="{x:.1f}" y="{yy:.1f}" text-anchor="middle" '
+            f'<text x="{cx:.1f}" y="{baseline:.1f}" text-anchor="middle" '
             f'fill="#ffffff" font-family="system-ui,-apple-system,sans-serif" '
-            f'font-size="{font_size}">{escape(line)}</text>'
+            f'font-size="{font:g}">{escape(line)}</text>'
         )
     return "\n".join(chunks)
 
 
-def render_svg(data: dict[str, Any]) -> str:
-    n = len(data["keyLine"])
-    if n < 1:
-        raise ValueError("keyLine must contain at least one node")
+def svg_wire(x0: float, y0: float, x1: float, y1: float) -> str:
+    move = f"V {y1:.1f}" if x0 == x1 else f"H {x1:.1f}"
+    return f'<path d="M {x0:.1f} {y0:.1f} {move}" stroke="{CONNECTOR}" stroke-width="1.5" fill="none"/>'
 
-    gt_chars, key_chars = LABEL_MAX, key_width(n)
-    gt_label = wrap_and_ellipsize_tail(data["governingThought"], gt_chars, LABEL_LINES)
-    keys = [
-        (node["id"], wrap_and_ellipsize_tail(node["claim"], key_chars, LABEL_LINES))
-        for node in data["keyLine"]
-    ]
 
-    card_w = 200 if n <= 4 else max(140, int(720 / n) - 16)
-    card_h = 72
-    gap = 20 if n <= 4 else 12
-    gt_w = min(560.0, max(300.0, n * card_w + (n - 1) * gap))
-    gt_h = 64.0
-    width = max(gt_w + 40.0, n * card_w + (n - 1) * gap + 40.0)
-    gt_x = (width - gt_w) / 2
-    gt_y = 16.0
-    row_y = gt_y + gt_h + 48.0
-    total_row = n * card_w + (n - 1) * gap
-    start_x = (width - total_row) / 2
-    height = row_y + card_h + 24.0
-    mid_y = gt_y + gt_h
-    branch_y = mid_y + 24.0
-    cx = gt_x + gt_w / 2
+def svg_rect(box: Box, fill: str, stroke: str) -> str:
+    rid = f'id="{escape(box.node_id)}" ' if box.node_id else ""
+    return (
+        f'<rect {rid}x="{box.x:.1f}" y="{box.y:.1f}" width="{box.w:.1f}" height="{box.h:.1f}" '
+        f'rx="10" fill="{fill}" stroke="{stroke}"/>'
+    )
 
+
+def render_svg(data: dict[str, Any], width: int) -> str:
+    m = METRICS["svg"]
+    lay = layout(data, m, width)
     parts = [
-        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width:.1f} {height:.1f}" '
+        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {lay.width:.1f} {lay.height:.1f}" '
         f'width="100%" role="img" aria-label="Argument pyramid">',
-        f'<path d="M {cx:.1f} {mid_y:.1f} V {branch_y:.1f}" stroke="{CONNECTOR}" '
-        f'stroke-width="1.5" fill="none"/>',
     ]
-
-    if n == 1:
-        x = start_x + card_w / 2
-        parts.append(
-            f'<path d="M {cx:.1f} {branch_y:.1f} H {x:.1f} V {row_y:.1f}" '
-            f'stroke="{CONNECTOR}" stroke-width="1.5" fill="none"/>'
-        )
-    else:
-        left = start_x + card_w / 2
-        right = start_x + (n - 1) * (card_w + gap) + card_w / 2
-        parts.append(
-            f'<path d="M {left:.1f} {branch_y:.1f} H {right:.1f}" '
-            f'stroke="{CONNECTOR}" stroke-width="1.5" fill="none"/>'
-        )
-        for i in range(n):
-            x = start_x + i * (card_w + gap) + card_w / 2
-            parts.append(
-                f'<path d="M {x:.1f} {branch_y:.1f} V {row_y:.1f}" '
-                f'stroke="{CONNECTOR}" stroke-width="1.5" fill="none"/>'
-            )
-
-    parts.append(
-        f'<rect x="{gt_x:.1f}" y="{gt_y:.1f}" width="{gt_w:.1f}" height="{gt_h:.1f}" '
-        f'rx="10" fill="{PURPLE}" stroke="{PURPLE_STROKE}"/>'
-    )
-    parts.append(
-        svg_text_block(gt_label, gt_x + gt_w / 2, gt_y + gt_h / 2 + 4, font_size=14)
-    )
-
-    for i, (node_id, label) in enumerate(keys):
-        x = start_x + i * (card_w + gap)
-        parts.append(
-            f'<rect id="{escape(node_id)}" x="{x:.1f}" y="{row_y:.1f}" '
-            f'width="{card_w:.1f}" height="{card_h:.1f}" rx="10" '
-            f'fill="{TEAL}" stroke="{TEAL_STROKE}"/>'
-        )
-        parts.append(svg_text_block(label, x + card_w / 2, row_y + card_h / 2))
-
+    parts.extend(svg_wire(*wire) for wire in lay.wires() + lay.drops())
+    parts.append(svg_rect(lay.gt, PURPLE, PURPLE_STROKE))
+    parts.append(svg_text_block(lay.gt, m.gt_font, m))
+    for row in lay.rows:
+        for card in row.cards:
+            parts.append(svg_rect(card, TEAL, TEAL_STROKE))
+            parts.append(svg_text_block(card, m.key_font, m))
     parts.append("</svg>")
     return "\n".join(parts) + "\n"
 
@@ -221,105 +370,50 @@ def render_mermaid(data: dict[str, Any]) -> str:
     return "```mermaid\n" + "\n".join(rows) + "\n```\n"
 
 
-def box_width(text_width: int) -> int:
-    return text_width + 4
+UP, DOWN, LEFT, RIGHT = 1, 2, 4, 8
+GLYPHS = {
+    UP: "│", DOWN: "│", UP | DOWN: "│",
+    LEFT: "─", RIGHT: "─", LEFT | RIGHT: "─",
+    DOWN | RIGHT: "┌", DOWN | LEFT: "┐", UP | RIGHT: "└", UP | LEFT: "┘",
+    UP | DOWN | RIGHT: "├", UP | DOWN | LEFT: "┤",
+    DOWN | LEFT | RIGHT: "┬", UP | LEFT | RIGHT: "┴",
+    UP | DOWN | LEFT | RIGHT: "┼",
+}
+ARROW = "▼"
 
 
-def make_box(lines: list[str], text_width: int, stem: int | None = None) -> list[str]:
-    inner = text_width + 2
-    top = "┌" + "─" * inner + "┐"
-    body = ["│ " + line.ljust(text_width) + " │" for line in lines]
-    if stem is None:
-        bottom = "└" + "─" * inner + "┘"
-    else:
-        if not 0 <= stem < inner:
-            raise ValueError(f"stem column {stem} outside box of width {inner}")
-        dashes = ["─"] * inner
-        dashes[stem] = "┬"
-        bottom = "└" + "".join(dashes) + "┘"
-    return [top, *body, bottom]
+def render_ansi(data: dict[str, Any], width: int) -> str:
+    lay = layout(data, METRICS["ansi"], width)
+    cols, height = int(lay.width), int(lay.height)
+    links = [[0] * cols for _ in range(height)]
+    marks: dict[tuple[int, int], str] = {}
 
+    def wire(x0: float, y0: float, x1: float, y1: float) -> None:
+        x0, y0, x1, y1 = int(x0), int(y0), int(x1), int(y1)
+        if y0 == y1:
+            for x in range(x0, x1 + 1):
+                links[y0][x] |= (LEFT if x > x0 else 0) | (RIGHT if x < x1 else 0)
+        else:
+            for y in range(y0, y1 + 1):
+                links[y][x0] |= (UP if y > y0 else 0) | (DOWN if y < y1 else 0)
 
-def place(rows: list[str], x: int, canvas: int) -> list[str]:
-    placed = []
-    for row in rows:
-        pad = canvas - x - len(row)
-        if pad < 0:
-            raise ValueError("row is wider than the canvas")
-        placed.append(" " * x + row + " " * pad)
-    return placed
+    for box in lay.boxes():
+        x, y, right, bottom = int(box.x), int(box.y), int(box.x + box.w) - 1, int(box.y + box.h) - 1
+        for edge in ((x, y, right, y), (x, bottom, right, bottom), (x, y, x, bottom), (right, y, right, bottom)):
+            wire(*edge)
+        for i, line in enumerate(box.lines):
+            for j, ch in enumerate(line):
+                marks[(y + 1 + i, x + 2 + j)] = ch
+    for segment in lay.wires():
+        wire(*segment)
+    for x, y0, _, y1 in lay.drops():
+        wire(x, y0, x, y1)
+        marks[(int(y1), int(x))] = ARROW
 
-
-def hjoin(blocks: list[list[str]], gap: int) -> list[str]:
-    height = max(len(block) for block in blocks)
-    widths = [len(block[0]) for block in blocks]
     rows = []
     for r in range(height):
-        parts = []
-        for block, width in zip(blocks, widths):
-            parts.append(block[r] if r < len(block) else " " * width)
-        rows.append((" " * gap).join(parts))
-    return rows
-
-
-def render_ansi(data: dict[str, Any]) -> str:
-    keys = data["keyLine"]
-    n = len(keys)
-    if n < 1:
-        raise ValueError("keyLine must contain at least one node")
-
-    key_inner = key_width(n)
-    gt_lines = wrap_and_ellipsize_tail(data["governingThought"], LABEL_MAX, LABEL_LINES)
-    key_wrapped = [wrap_and_ellipsize_tail(node["claim"], key_inner, LABEL_LINES) for node in keys]
-    key_boxes = [make_box(lines, key_inner) for lines in key_wrapped]
-    gap = 1
-    key_row = hjoin(key_boxes, gap)
-    key_w = len(key_row[0])
-    gt_box_w = box_width(LABEL_MAX)
-    canvas = max(key_w, gt_box_w)
-    gt_x = (canvas - gt_box_w) // 2
-    key_x = (canvas - key_w) // 2
-    gt_stem = gt_x + gt_box_w // 2
-    gt_box = make_box(gt_lines, LABEL_MAX, stem=gt_stem - gt_x - 1)
-
-    box_w = box_width(key_inner)
-    centers = []
-    x = key_x
-    for _ in range(n):
-        centers.append(x + box_w // 2)
-        x += box_w + gap
-
-    rows = place(gt_box, gt_x, canvas)
-    stem = [" "] * canvas
-    stem[gt_stem] = "│"
-    rows.append("".join(stem))
-
-    if n == 1:
-        arrow = [" "] * canvas
-        arrow[centers[0]] = "▼"
-        rows.append("".join(arrow))
-    else:
-        left, right = centers[0], centers[-1]
-        bar = [" "] * canvas
-        bar[left] = "┌"
-        for col in range(left + 1, right):
-            bar[col] = "─"
-        bar[right] = "┐"
-        if left < gt_stem < right:
-            bar[gt_stem] = "┼" if gt_stem in centers else "┬"
-        elif gt_stem == left:
-            bar[left] = "├"
-        elif gt_stem == right:
-            bar[right] = "┤"
-        rows.append("".join(bar))
-        arrow = [" "] * canvas
-        for col in centers:
-            arrow[col] = "▼"
-        rows.append("".join(arrow))
-
-    rows.extend(place(key_row, key_x, canvas))
-    art = "\n".join(row.rstrip() for row in rows)
-    return "```\n" + art + "\n```\n"
+        rows.append("".join(marks.get((r, c)) or GLYPHS.get(links[r][c], " ") for c in range(cols)).rstrip())
+    return "```\n" + "\n".join(rows) + "\n```\n"
 
 
 def check_leaks(data: dict[str, Any], diagram: str) -> list[str]:
@@ -356,14 +450,14 @@ def check_fitted_labels(
     return errors
 
 
-def label_entries(data: dict[str, Any], gt_chars: int, key_chars: int) -> list[tuple[str, list[str]]]:
-    entries = [("governingThought", wrap_and_ellipsize_tail(data["governingThought"], gt_chars, LABEL_LINES))]
+def mermaid_label_entries(data: dict[str, Any]) -> list[tuple[str, list[str]]]:
+    entries = [("governingThought", wrap_and_ellipsize_tail(data["governingThought"], LABEL_MAX, LABEL_LINES))]
     for node in data["keyLine"]:
-        entries.append((node["id"], wrap_and_ellipsize_tail(node["claim"], key_chars, LABEL_LINES)))
+        entries.append((node["id"], wrap_and_ellipsize_tail(node["claim"], LABEL_MAX, LABEL_LINES)))
     return entries
 
 
-def check_svg(data: dict[str, Any], diagram: str) -> list[str]:
+def check_svg(data: dict[str, Any], diagram: str, width: int) -> list[str]:
     errors: list[str] = []
     if "<svg" not in diagram:
         errors.append("diagram must be an SVG card pyramid")
@@ -373,14 +467,13 @@ def check_svg(data: dict[str, Any], diagram: str) -> list[str]:
         errors.append("SVG must not use a full-bleed page fill")
     if 'width="100%" height="100%"' in diagram:
         errors.append("SVG must not paint a page-sized background rect")
-    n = len(data["keyLine"])
-    errors.extend(
-        check_fitted_labels(
-            diagram,
-            label_entries(data, LABEL_MAX, key_width(n)),
-            lambda line: escape(line) in diagram,
-        )
-    )
+    m = METRICS["svg"]
+    view = re.search(r'viewBox="0 0 ([\d.]+) ([\d.]+)"', diagram)
+    if not view or float(view.group(1)) != width:
+        errors.append(f"SVG viewBox width must equal --width {width}")
+    lay = layout(data, m, width)
+    errors.extend(check_fitted_labels(diagram, lay.label_entries(), lambda line: escape(line) in diagram))
+    errors.extend(check_svg_geometry(diagram, m))
     for node in data["keyLine"]:
         if f'id="{escape(node["id"])}"' not in diagram:
             errors.append(f"{node['id']}: node id missing from diagram")
@@ -390,6 +483,25 @@ def check_svg(data: dict[str, Any], diagram: str) -> list[str]:
         cid = child.get("id")
         if isinstance(cid, str) and f'id="{escape(cid)}"' in diagram:
             errors.append(f"{cid}: deeper child must not appear in the diagram")
+    return errors
+
+
+def check_svg_geometry(diagram: str, m: Metrics) -> list[str]:
+    errors: list[str] = []
+    rect_re = r'<rect [^>]*?x="([\d.]+)" y="([\d.]+)" width="([\d.]+)" height="([\d.]+)"'
+    rects = [tuple(map(float, g)) for g in re.findall(rect_re, diagram)]
+    for i, (ax, ay, aw, ah) in enumerate(rects):
+        for bx, by, bw, bh in rects[i + 1 :]:
+            if ax < bx + bw and bx < ax + aw and ay < by + bh and by < ay + ah:
+                errors.append(f"cards overlap at ({ax:.0f},{ay:.0f}) and ({bx:.0f},{by:.0f})")
+    text_re = r'<text x="([\d.]+)" y="([\d.]+)"[^>]*font-size="([\d.]+)">(.*?)</text>'
+    for tx, ty, size, body in re.findall(text_re, diagram):
+        x, y, font, line = float(tx), float(ty), float(size), unescape(body)
+        home = [r for r in rects if r[0] <= x <= r[0] + r[2] and r[1] <= y <= r[1] + r[3]]
+        if not home:
+            errors.append(f"label line outside every card: {line!r}")
+        elif m.text_w(line, font) > home[0][2] - 2 * m.pad_x:
+            errors.append(f"label line wider than its card: {line!r}")
     return errors
 
 
@@ -424,52 +536,62 @@ def check_mermaid(data: dict[str, Any], diagram: str) -> list[str]:
     errors.extend(
         check_fitted_labels(
             diagram,
-            label_entries(data, LABEL_MAX, LABEL_MAX),
+            mermaid_label_entries(data),
             lambda line: mermaid_text([line]) in diagram,
         )
     )
     return errors
 
 
-def check_ansi(data: dict[str, Any], diagram: str) -> list[str]:
+def check_ansi(data: dict[str, Any], diagram: str, width: int) -> list[str]:
     errors: list[str] = []
-    if not diagram.startswith("```\n") or "┌" not in diagram or "▼" not in diagram:
+    if not diagram.startswith("```\n") or "┌" not in diagram or ARROW not in diagram:
         errors.append("diagram must be box-drawing inside a fenced code block")
     if "<svg" in diagram or "```mermaid" in diagram:
         errors.append("ANSI paint must not include SVG or Mermaid")
     if PAGE_FILL in diagram.lower():
         errors.append("ANSI paint must not include the SVG page fill")
-    errors.extend(
-        check_fitted_labels(
-            diagram,
-            label_entries(data, LABEL_MAX, key_width(len(data["keyLine"]))),
-            lambda line: line in diagram,
-        )
-    )
+    for number, line in enumerate(diagram.splitlines(), 1):
+        if len(line) > width:
+            errors.append(f"line {number} is {len(line)} columns, wider than --width {width}")
+    lay = layout(data, METRICS["ansi"], width)
+    errors.extend(check_fitted_labels(diagram, lay.label_entries(), lambda line: line in diagram))
+    grid = diagram.splitlines()[1:-1]
+
+    def cell(row: int, col: int) -> str:
+        line = grid[row] if row < len(grid) else ""
+        return line[col] if col < len(line) else " "
+
+    for box in lay.boxes():
+        x, y, right, bottom = int(box.x), int(box.y), int(box.x + box.w) - 1, int(box.y + box.h) - 1
+        corners = cell(y, x) + cell(y, right) + cell(bottom, x) + cell(bottom, right)
+        sides = {cell(r, c) for r in range(y + 1, bottom) for c in (x, right)}
+        if corners != "┌┐└┘" or sides != {"│"}:
+            errors.append(f"{box.node_id or 'governingThought'}: box border is broken or overwritten")
     return errors
 
 
-RENDERERS: dict[str, Callable[[dict[str, Any]], str]] = {
+RENDERERS: dict[str, Callable[[dict[str, Any], int], str]] = {
     "svg": render_svg,
-    "mermaid": render_mermaid,
+    "mermaid": lambda data, _width: render_mermaid(data),
     "ansi": render_ansi,
 }
-CHECKERS: dict[str, Callable[[dict[str, Any], str], list[str]]] = {
+CHECKERS: dict[str, Callable[[dict[str, Any], str, int], list[str]]] = {
     "svg": check_svg,
-    "mermaid": check_mermaid,
+    "mermaid": lambda data, diagram, _width: check_mermaid(data, diagram),
     "ansi": check_ansi,
 }
 FORMATS = tuple(RENDERERS)
 
 
-def check_render(data: dict[str, Any], diagram: str, fmt: str) -> list[str]:
+def check_render(data: dict[str, Any], diagram: str, fmt: str, width: int) -> list[str]:
     errors = check_leaks(data, diagram)
-    errors.extend(CHECKERS[fmt](data, diagram))
+    errors.extend(CHECKERS[fmt](data, diagram, width))
     return errors
 
 
 def main(argv: list[str]) -> int:
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("tree", type=Path)
     parser.add_argument(
         "--format",
@@ -478,9 +600,14 @@ def main(argv: list[str]) -> int:
         help="svg (default), mermaid, or ansi",
     )
     parser.add_argument(
+        "--width",
+        type=int,
+        help="Target width: svg container pixels (default 720), ansi columns (default 80). mermaid ignores it",
+    )
+    parser.add_argument(
         "--check",
         action="store_true",
-        help="Check labels, colors or fences, shallow tree, and no support leak",
+        help="Check labels, fit to --width, colors or fences, shallow tree, and no support leak",
     )
     parser.add_argument(
         "--write",
@@ -490,13 +617,18 @@ def main(argv: list[str]) -> int:
     args = parser.parse_args(argv)
 
     data = json.loads(args.tree.read_text(encoding="utf-8"))
-    diagram = RENDERERS[args.format](data)
+    metrics = METRICS.get(args.format)
+    width = args.width or (metrics.default_width if metrics else 0)
+    try:
+        diagram = RENDERERS[args.format](data, width)
+    except ValueError as exc:
+        parser.error(str(exc))
 
     if args.write:
         args.write.write_text(diagram, encoding="utf-8")
 
     if args.check:
-        errors = check_render(data, diagram, args.format)
+        errors = check_render(data, diagram, args.format, width)
         if errors:
             print(f"FAIL {args.tree} {args.format}")
             for err in errors:

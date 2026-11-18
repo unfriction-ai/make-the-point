@@ -5,18 +5,17 @@ ANSI box drawing for a terminal or TUI. Keep the drawing inside a code fence. Do
 ## Pyramid diagram
 
 ```
-                        ┌──────────────────────────────────────────┐
-                        │ Appoint one backlog owner with explicit  │
-                        │ decision rights.                         │
-                        └─────────────────────┬────────────────────┘
-                                              │
-               ┌──────────────────────────────┼──────────────────────────────┐
-               ▼                              ▼                              ▼
-┌────────────────────────────┐ ┌────────────────────────────┐ ┌────────────────────────────┐
-│ Split ownership creates    │ │ A single owner can         │ │ Decision rights remove     │
-│ priority thrash.           │ │ sequence work against one  │ │ escalation latency.        │
-└────────────────────────────┘ │ outcome.                   │ └────────────────────────────┘
-                               └────────────────────────────┘
+          ┌──────────────────────────────────────────────────────────┐
+          │ Appoint one backlog owner with explicit decision rights. │
+          └─────────────────────────────┬────────────────────────────┘
+                                        │
+             ┌──────────────────────────┼──────────────────────────┐
+             ▼                          ▼                          ▼
+ ┌──────────────────────┐   ┌──────────────────────┐   ┌──────────────────────┐
+ │ Split ownership      │   │ A single owner can   │   │ Decision rights      │
+ │ creates priority     │   │ sequence work        │   │ remove escalation    │
+ │ thrash.              │   │ against one outcome. │   │ latency.             │
+ └──────────────────────┘   └──────────────────────┘   └──────────────────────┘
 ```
 
 ## ArgumentTree JSON

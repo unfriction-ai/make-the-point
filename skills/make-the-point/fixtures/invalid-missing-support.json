@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "mode": "construct",
+  "source": {
+    "kind": "text"
+  },
+  "scqa": {
+    "situation": "We need a launch plan.",
+    "complication": "Engineering capacity is fixed.",
+    "question": "What should we cut?",
+    "answer": "Ship the core path only."
+  },
+  "governingThought": "Ship the core path only.",
+  "horizontalLogic": "inductive",
+  "keyLine": [
+    {
+      "id": "K1",
+      "claim": "Secondary surfaces can wait.",
+      "role": "reason"
+    }
+  ]
+}

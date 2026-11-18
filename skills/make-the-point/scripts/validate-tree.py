@@ -7,8 +7,9 @@ Usage:
   python3 scripts/validate-tree.py --fixtures
 
 Normal mode exits 0 only when every file passes. --self-test exits 0 when packaged
-fixtures match expected pass/fail and the svg, mermaid, and ansi examples match
-the renderer.
+fixtures match expected pass/fail, the svg, mermaid, and ansi examples match
+the renderer, and svg and ansi renders of 1 to 12 key-line claims pass --check
+at the default and a narrow width.
 """
 
 from __future__ import annotations
@@ -19,6 +20,7 @@ import json
 import re
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -203,6 +205,7 @@ def run_self_test() -> int:
     fixture_dir = skill_dir / "fixtures"
     cases = [
         (fixture_dir / "valid-analyze.json", True),
+        (fixture_dir / "valid-wide-keyline.json", True),
         (fixture_dir / "invalid-missing-support.json", False),
     ]
     failed = 0
@@ -235,7 +238,48 @@ def run_self_test() -> int:
     for name, fmt in paints:
         failed += check_example(skill_dir / "examples" / name, valid, render, fmt, fixture_json)
 
+    wide = fixture_dir / "valid-wide-keyline.json"
+    for fmt in ("svg", "mermaid", "ansi"):
+        check = subprocess.run(
+            [sys.executable, str(render), str(wide), "--check", "--format", fmt],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        sys.stdout.write(check.stdout)
+        sys.stderr.write(check.stderr)
+        if check.returncode != 0:
+            failed += 1
+
+    failed += check_key_line_counts(render, wide)
     return 1 if failed else 0
+
+
+WIDTH_CASES = (("svg", None), ("ansi", None), ("svg", 480), ("ansi", 60))
+
+
+def check_key_line_counts(render: Path, wide: Path, counts: range = range(1, 13)) -> int:
+    base = json.loads(wide.read_text(encoding="utf-8"))
+    claims = base["keyLine"]
+    failed = 0
+    with tempfile.TemporaryDirectory() as tmp:
+        for n in counts:
+            key_line = [dict(claims[i % len(claims)], id=f"K{i + 1}") for i in range(n)]
+            tree = Path(tmp) / f"n{n}.json"
+            tree.write_text(json.dumps(dict(base, keyLine=key_line)), encoding="utf-8")
+            for fmt, width in WIDTH_CASES:
+                cmd = [sys.executable, str(render), str(tree), "--check", "--format", fmt]
+                if width is not None:
+                    cmd += ["--width", str(width)]
+                check = subprocess.run(cmd, check=False, capture_output=True, text=True)
+                if check.returncode != 0:
+                    failed += 1
+                    print(f"FAIL n={n} {fmt} width={width or 'default'}")
+                    sys.stdout.write(check.stdout)
+                    sys.stderr.write(check.stderr)
+    cases = len(counts) * len(WIDTH_CASES)
+    print(f"{'OK' if not failed else 'FAIL':14} key-line counts {counts.start}-{counts.stop - 1}: {cases - failed}/{cases} svg and ansi renders fit their width")
+    return failed
 
 
 def diagram_section(text: str) -> str | None:

@@ -1,0 +1,78 @@
+{
+  "version": 1,
+  "mode": "analyze",
+  "source": {
+    "kind": "text",
+    "excerpt": "Power Law Thinking wide keyLine repro"
+  },
+  "scqa": {
+    "situation": "Most teams chase incremental gains.",
+    "complication": "Incremental work cannot produce 10x outcomes.",
+    "question": "How should leaders decide under power-law returns?",
+    "answer": "Make decisions from the tail: start from a literal 10x future, then concentrate on the few levers that can produce it."
+  },
+  "governingThought": "Make decisions from the tail: start from a literal 10x future, then concentrate on the few levers that can produce it.",
+  "horizontalLogic": "inductive",
+  "keyLine": [
+    {
+      "id": "K1",
+      "claim": "Work backward from a literal 10x target.",
+      "role": "reason",
+      "support": [
+        "Support note 1."
+      ]
+    },
+    {
+      "id": "K2",
+      "claim": "Be different, not better.",
+      "role": "reason",
+      "support": [
+        "Support note 2."
+      ]
+    },
+    {
+      "id": "K3",
+      "claim": "Let one goal govern every choice.",
+      "role": "reason",
+      "support": [
+        "Support note 3."
+      ]
+    },
+    {
+      "id": "K4",
+      "claim": "Build a few differentiated assets.",
+      "role": "reason",
+      "support": [
+        "Support note 4."
+      ]
+    },
+    {
+      "id": "K5",
+      "claim": "Hire proven talent for the few levers.",
+      "role": "reason",
+      "support": [
+        "Support note 5."
+      ]
+    },
+    {
+      "id": "K6",
+      "claim": "Seek the one hub that compounds.",
+      "role": "reason",
+      "support": [
+        "Support note 6."
+      ]
+    },
+    {
+      "id": "K7",
+      "claim": "Keep slack in resources for the jump.",
+      "role": "reason",
+      "support": [
+        "Support note 7."
+      ]
+    }
+  ],
+  "prose": "Make decisions from the tail.",
+  "notes": [
+    "Synthetic wide keyLine fixture for SVG readability."
+  ]
+}

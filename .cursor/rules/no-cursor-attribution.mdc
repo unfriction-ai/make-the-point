@@ -1,0 +1,12 @@
+---
+description: No Cursor attribution in commits or PR copy for this repository
+alwaysApply: true
+---
+
+# No Cursor branding in git history or PRs
+
+- Never add `Co-authored-by: Cursor` or any Cursor / cursoragent trailer to commits.
+- Author and committer stay the human operator's git identity only.
+- Do not mention Cursor (product or company) in PR titles or PR bodies. Prefer "IDE", "local plugin host", or concrete paths when install steps need them.
+- Paths such as `.cursor-plugin/` or `~/.cursor/plugins/` may appear as filesystem locations. Do not turn them into product shoutouts.
+- Before `git commit` and before `gh pr create` / `gh pr edit`, strip any Cursor co-author trailer the environment injected, and re-read the PR text for the word Cursor.

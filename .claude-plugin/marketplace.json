@@ -1,0 +1,16 @@
+{
+  "name": "make-the-point",
+  "owner": {
+    "name": "Unfriction"
+  },
+  "metadata": {
+    "description": "Minto Pyramid argument trees as an installable plugin."
+  },
+  "plugins": [
+    {
+      "name": "make-the-point",
+      "source": "./",
+      "description": "Understand, construct, and communicate the central argument via the Minto Pyramid Principle. Canonical output is a testable ArgumentTree."
+    }
+  ]
+}

@@ -7,12 +7,14 @@ Usage:
   python3 scripts/validate-tree.py --fixtures
 
 Normal mode exits 0 only when every file passes. --self-test exits 0 when packaged
-fixtures match expected pass/fail and the valid tree renders a short-label pyramid.
+fixtures match expected pass/fail and the svg, mermaid, and ansi examples match
+the renderer.
 """
 
 from __future__ import annotations
 
 import argparse
+import difflib
 import json
 import re
 import subprocess
@@ -224,32 +226,117 @@ def run_self_test() -> int:
 
     render = Path(__file__).resolve().parent / "render-pyramid.py"
     valid = fixture_dir / "valid-analyze.json"
-    example = skill_dir / "examples" / "valid-analyze.md"
-    proc = subprocess.run(
-        [sys.executable, str(render), str(valid), "--check"],
+    fixture_json = valid.read_text(encoding="utf-8").strip()
+    paints = (
+        ("valid-analyze.md", "svg"),
+        ("valid-analyze-mermaid.md", "mermaid"),
+        ("valid-analyze-ansi.md", "ansi"),
+    )
+    for name, fmt in paints:
+        failed += check_example(skill_dir / "examples" / name, valid, render, fmt, fixture_json)
+
+    return 1 if failed else 0
+
+
+def diagram_section(text: str) -> str | None:
+    marker = "## Pyramid diagram"
+    nxt = "## ArgumentTree JSON"
+    if marker not in text or nxt not in text:
+        return None
+    return text.split(marker, 1)[1].split(nxt, 1)[0].strip()
+
+
+def fenced_json(text: str) -> str | None:
+    match = re.search(r"```json\n(.*?)\n```", text, re.DOTALL)
+    return match.group(1) if match else None
+
+
+def paint_errors(fmt: str, text: str, diagram: str) -> list[str]:
+    errors: list[str] = []
+    if fmt == "svg":
+        if "<svg" not in diagram:
+            errors.append("diagram must be SVG")
+        if "#141414" in text.lower():
+            errors.append("SVG example must not use a full-bleed page fill")
+        if "#5B2C6F" not in diagram or "#0E6655" not in diagram:
+            errors.append("SVG example must use purple and teal card fills")
+    elif fmt == "mermaid":
+        if "```mermaid" not in diagram or "flowchart TB" not in diagram:
+            errors.append("diagram must be a fenced Mermaid flowchart")
+        if "<svg" in text:
+            errors.append("Mermaid example must not include raw SVG")
+    elif fmt == "ansi":
+        if not diagram.startswith("```") or "┌" not in diagram or "▼" not in diagram:
+            errors.append("diagram must be box drawing inside a code fence")
+        if "<svg" in text or "```mermaid" in text:
+            errors.append("ANSI example must not include SVG or Mermaid")
+    else:
+        errors.append(f"unknown format {fmt}")
+    return errors
+
+
+def check_example(
+    example: Path,
+    valid: Path,
+    render: Path,
+    fmt: str,
+    fixture_json: str,
+) -> int:
+    check = subprocess.run(
+        [sys.executable, str(render), str(valid), "--check", "--format", fmt],
         check=False,
         capture_output=True,
         text=True,
     )
-    sys.stdout.write(proc.stdout)
-    sys.stderr.write(proc.stderr)
-    if proc.returncode != 0:
-        failed += 1
-    elif not example.is_file():
-        print(f"FAIL missing example {example}")
-        failed += 1
-    else:
-        text = example.read_text(encoding="utf-8")
-        if "<svg" not in text or "```json" not in text:
-            print(f"FAIL {example}: must show SVG pyramid and json fence")
-            failed += 1
-        elif "#5B2C6F" not in text or "#0E6655" not in text:
-            print(f"FAIL {example}: SVG must use purple/teal card fills")
-            failed += 1
-        else:
-            print(f"OK             {example}")
+    sys.stdout.write(check.stdout)
+    sys.stderr.write(check.stderr)
+    if check.returncode != 0:
+        return 1
 
-    return 1 if failed else 0
+    drawn = subprocess.run(
+        [sys.executable, str(render), str(valid), "--format", fmt],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if drawn.returncode != 0:
+        print(f"FAIL renderer {fmt}")
+        sys.stdout.write(drawn.stdout)
+        sys.stderr.write(drawn.stderr)
+        return 1
+    if not example.is_file():
+        print(f"FAIL missing example {example}")
+        return 1
+
+    text = example.read_text(encoding="utf-8")
+    diagram = diagram_section(text)
+    payload = fenced_json(text)
+    errors: list[str] = []
+    if diagram is None:
+        errors.append("missing pyramid diagram section")
+    elif diagram != drawn.stdout.strip():
+        errors.append("diagram does not match renderer output")
+    if payload is None:
+        errors.append("missing json fence")
+    elif payload.strip() != fixture_json:
+        errors.append("JSON does not match the valid fixture")
+    if diagram is not None:
+        errors.extend(paint_errors(fmt, text, diagram))
+    if errors:
+        print(f"FAIL {example}")
+        for err in errors:
+            print(f"  - {err}")
+        if diagram is not None and diagram != drawn.stdout.strip():
+            diff = difflib.unified_diff(
+                drawn.stdout.strip().splitlines(True),
+                diagram.splitlines(True),
+                fromfile="renderer",
+                tofile=example.name,
+            )
+            sys.stdout.writelines(diff)
+        return 1
+    print(f"OK             {example}")
+    return 0
 
 
 def main(argv: list[str]) -> int:
@@ -263,7 +350,7 @@ def main(argv: list[str]) -> int:
     parser.add_argument(
         "--self-test",
         action="store_true",
-        help="Check packaged fixtures against expected pass/fail",
+        help="Check fixtures and svg, mermaid, and ansi examples",
     )
     args = parser.parse_args(argv)
 

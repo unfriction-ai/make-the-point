@@ -2,21 +2,35 @@
 
 Make the Point helps you understand, construct, and communicate a central argument with the Minto Pyramid Principle. The canonical output is an ArgumentTree JSON document. Prose is a view of that tree. The schema is `skills/make-the-point/argument-tree.schema.json`. The checker is `skills/make-the-point/scripts/validate-tree.py`. The plugin sends no data of its own. It uses only the text, link, or image you provide in the chat.
 
-## Install in Cursor
+## Install from GitHub (Claude Desktop)
 
-Copy this repository, or symlink it, to `~/.cursor/plugins/local/make-the-point`. Reload the Cursor window. Cursor reads `.cursor-plugin/plugin.json` and loads the skill from `skills/`.
+1. Open **Customize → Plugins → Add → Add marketplace**.
+2. Enter `unfriction-ai/make-the-point` or `https://github.com/unfriction-ai/make-the-point`.
+3. Add the **make-the-point** plugin from that marketplace and enable it.
+4. In a chat, type `/` and select **make-the-point**, or run `/make-the-point:make-the-point`.
 
-## Install in Claude Code
+## Install from GitHub (Claude Code)
 
-From this repository, start a session with the plugin loaded.
+```bash
+claude plugin marketplace add unfriction-ai/make-the-point
+claude plugin install make-the-point@make-the-point
+```
+
+Confirm with `claude plugin list`. Skills appear as `/make-the-point:make-the-point`.
+
+## Local development (Claude Code)
 
 ```bash
 claude --plugin-dir .
 ```
 
-## Install in Claude Desktop
+## Upload without a marketplace (Claude Desktop)
 
-Zip this repository so `.claude-plugin/plugin.json` sits at the archive root, or inside one top-level folder. In Claude Desktop, upload that zip as a plugin.
+Zip this repository so `.claude-plugin/plugin.json` sits at the archive root, or inside one top-level folder. In Claude Desktop, use **Add → Upload plugin**.
+
+## Local IDE plugin host
+
+Copy this repository, or symlink it, to `~/.cursor/plugins/local/make-the-point`. Reload the window so `.cursor-plugin/plugin.json` and `skills/` load.
 
 ## Run the self-test
 

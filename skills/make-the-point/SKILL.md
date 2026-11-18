@@ -3,11 +3,11 @@ name: make-the-point
 description: >-
   Understand, construct, and communicate the central argument in writing via the
   Minto Pyramid Principle. Accepts text, a link, or an image. Canonical output
-  is a testable ArgumentTree JSON plus an inline Mermaid pyramid diagram with
-  shortened labels; prose is generated or analyzed only from that tree. Use for
-  /make-the-point or when the user wants pyramid structuring, SCQA, governing
-  thought, key-line, MECE argument trees, or eval-friendly reading/writing of
-  arguments.
+  is a testable ArgumentTree JSON plus an inline SVG card pyramid (purple
+  governing thought, teal key-line cards, short labels); prose is generated or
+  analyzed only from that tree. Use for /make-the-point or when the user wants
+  pyramid structuring, SCQA, governing thought, key-line, MECE argument trees,
+  or eval-friendly reading/writing of arguments.
 disable-model-invocation: true
 ---
 
@@ -46,7 +46,7 @@ From the repository root:
 python3 skills/make-the-point/scripts/validate-tree.py path/to/tree.json
 ```
 
-7. Render the inline pyramid from that JSON (prefer the script so labels stay consistent):
+7. Render the inline SVG pyramid from that JSON (prefer the script so colors and labels stay consistent):
 
 ```bash
 python3 ${CLAUDE_SKILL_DIR}/scripts/render-pyramid.py path/to/tree.json
@@ -64,7 +64,7 @@ Fix until validate exits 0. Do not treat freeform essay as done.
 
 Reply in this order:
 
-1. **Pyramid diagram** — one fenced `mermaid` `flowchart TB`. Governing thought (`GT`) on top, each `keyLine` child under it, deeper nodes under their parents. Node labels are shortened claims (about 40 characters). Omit `support` figures from the diagram. Full claims and figures stay only in the JSON.
+1. **Pyramid diagram** — raw SVG from `render-pyramid.py` (not Mermaid). Purple card for `governingThought`, teal cards for each `keyLine` claim, elbow connectors, short labels (~40 characters). Diagram shows **governing thought + keyLine only**. Deeper `children` and `support` figures stay only in the JSON. Emit the SVG so chat hosts that allow HTML/SVG can paint it (Claude Desktop, Claude Code, Codex, and compatible IDE chats).
 2. **ArgumentTree JSON** — fenced `json` block. This is what evals score.
 3. Optional one-line human summary after the JSON.
 
@@ -79,6 +79,7 @@ Match [examples/valid-analyze.md](examples/valid-analyze.md). Put uncertainty in
 - Analyze mode maps the source. Prefer the author's point. If the source has no clear point, say so in `notes` and still force a best-effort tree.
 - Construct mode invents structure for the user's intent, then drafts prose from it.
 - Diagram labels never invent wording absent from the claim. Shorten only.
+- Never use default Mermaid flowcharts for the pyramid view.
 
 ## Structural check
 

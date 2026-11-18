@@ -1,0 +1,109 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://unfriction.ai/schemas/argument-tree.json",
+  "title": "ArgumentTree",
+  "description": "Canonical make-the-point output. Prose is optional and must derive from this tree.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "mode",
+    "source",
+    "scqa",
+    "governingThought",
+    "horizontalLogic",
+    "keyLine"
+  ],
+  "properties": {
+    "version": {
+      "const": 1
+    },
+    "mode": {
+      "enum": ["analyze", "construct"]
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind"],
+      "properties": {
+        "kind": {
+          "enum": ["text", "link", "image"]
+        },
+        "ref": {
+          "type": "string",
+          "description": "URL, file path, or omitted when the text was inlined in the prompt."
+        },
+        "excerpt": {
+          "type": "string",
+          "description": "Short note of what was ingested; not the full source."
+        }
+      }
+    },
+    "scqa": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["situation", "complication", "question", "answer"],
+      "properties": {
+        "situation": { "type": "string", "minLength": 1 },
+        "complication": { "type": "string", "minLength": 1 },
+        "question": { "type": "string", "minLength": 1 },
+        "answer": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Must match governingThought."
+        }
+      }
+    },
+    "governingThought": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Single main point the audience must remember. Same string as scqa.answer."
+    },
+    "horizontalLogic": {
+      "enum": ["inductive", "deductive"],
+      "description": "How keyLine siblings relate. inductive = grouped reasons of the same kind. deductive = chained major→minor→conclusion."
+    },
+    "keyLine": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/node" }
+    },
+    "prose": {
+      "type": "string",
+      "description": "Pyramid-order prose generated from the tree, or a reconstruction that mirrors it. Never invent claims absent from the tree."
+    },
+    "notes": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Gaps, assumptions, or MECE risks. Not part of the argument."
+    }
+  },
+  "$defs": {
+    "node": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "claim", "role"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9._-]+$"
+        },
+        "claim": { "type": "string", "minLength": 1 },
+        "role": {
+          "enum": ["reason", "evidence", "example", "rebuttal"]
+        },
+        "children": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/node" }
+        },
+        "support": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "description": "Leaf facts, citations, or observations that back this claim."
+        }
+      }
+    }
+  }
+}

@@ -52,24 +52,35 @@ Siblings at one level:
 
 Order: governing thought → key-line points in array order → deepen only as needed. Do not add claims absent from the tree. Do not lead with SCQA story unless the user asks for a full memo intro; SCQA lives in the JSON either way.
 
-## Inline pyramid diagram
+## Surface table
 
-Every reply includes an **SVG card pyramid** from `scripts/render-pyramid.py`.
+Reply with one diagram, then the JSON. The diagram shows the governing thought and the key line only. Deeper children and support stay in the JSON.
 
-- Purple card: shortened `governingThought`.
-- Teal cards: shortened `keyLine` claims, linked with elbow connectors.
-- **Shallow view only:** governing thought + keyLine. Deeper `children` and `support` stay in the JSON.
-- Shorten labels to roughly 40 characters.
-- Do not use Mermaid flowcharts for this view.
+| Host | Format |
+| --- | --- |
+| Claude Code, a TUI, or another terminal | ANSI box drawing inside a fenced code block |
+| Claude Desktop | SVG cards. No dark page background. Purple `#5B2C6F` and teal `#0E6655` when the host allows color. |
+| Cursor, ChatGPT, and other Markdown chats | Mermaid flowchart inside a `mermaid` fence, with purple and teal node styles |
+| Optional rich SVG | SVG cards with no `#141414` page fill |
+| Never | Raw SVG in a terminal |
+
+Wrap a label to about 40 characters per line. Use at most 3 lines. Use an ellipsis only when the last line still overflows. A narrow card wraps to its own width. Copy words from the claim.
+
+Run `scripts/render-pyramid.py` when a shell is available. The default format is svg. Pass `--format mermaid` or `--format ansi` for the other hosts. When no shell is available, emit the same shape from this table. The script is not required for Claude Desktop.
+
+Do not use D3, a widget, or a second skill.
 
 ## What not to do
 
 - Do not ship essay-only output.
-- Do not ship JSON without the pyramid diagram.
+- Do not ship JSON without the diagram.
 - Do not bury the answer under chronology of research.
 - Do not use overlapping sibling claims ("better UX" and "easier to use").
 - Do not attach evidence that supports a different claim than its parent.
 - Do not put full support figures into diagram labels.
 - Do not expand the diagram into a deep flowchart of every child node.
+- Do not paste raw SVG into a terminal.
+- Do not paint a full-bleed dark page background.
+- Do not use D3, a widget, or a second skill.
 
 

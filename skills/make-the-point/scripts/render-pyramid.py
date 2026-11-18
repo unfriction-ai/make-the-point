@@ -49,7 +49,6 @@ def ellipsize(text: str, max_chars: int) -> str:
 
 
 def layout_label(text: str, max_chars: int = LABEL_MAX, max_lines: int = LABEL_LINES) -> list[str]:
-    """Wrap onto max_lines. Ellipsize only the tail that does not fit."""
     cleaned = " ".join(text.split())
     if not cleaned:
         return [""]

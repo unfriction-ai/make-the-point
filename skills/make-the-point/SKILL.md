@@ -53,7 +53,7 @@ python3 skills/make-the-point/scripts/validate-tree.py path/to/tree.json
 python3 ${CLAUDE_SKILL_DIR}/scripts/render-pyramid.py path/to/tree.json --format svg
 ```
 
-From the repository root, the script is `skills/make-the-point/scripts/render-pyramid.py`. The default format is svg. Pass `--format mermaid` or `--format ansi` for the other hosts.
+From the repository root, the script is `skills/make-the-point/scripts/render-pyramid.py`. The default format is svg. Pass `--format mermaid` or `--format ansi` for the other hosts. Pass `--width` with the container width in pixels for svg or the terminal columns for ansi. Key-line cards wrap onto balanced rows to fit it.
 
 Fix until validate exits 0. Do not treat a freeform essay as done.
 
@@ -104,4 +104,4 @@ From the repository root:
 python3 skills/make-the-point/scripts/validate-tree.py --self-test
 ```
 
-Must exit 0. Packaged fixtures encode one valid tree, one deliberate failure, and svg, mermaid, and ansi renders of the valid tree.
+Must exit 0. Packaged fixtures encode one valid tree, one seven-claim wide tree, one deliberate failure, and svg, mermaid, and ansi renders of the valid trees.

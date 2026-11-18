@@ -64,7 +64,7 @@ Reply with one diagram, then the JSON. The diagram shows the governing thought a
 | Optional rich SVG | SVG cards with no `#141414` page fill |
 | Never | Raw SVG in a terminal |
 
-Wrap a label to about 40 characters per line. Use at most 3 lines. Use an ellipsis only when the last line still overflows. A narrow card wraps to its own width. Copy words from the claim.
+Wrap a label to about 40 characters per line. Use at most 3 lines. Use an ellipsis only when the last line still overflows. A narrow card wraps to its own width. Copy words from the claim. SVG and ANSI fit cards to `--width` (720 px or 80 columns by default), so text keeps its full size at any claim count. Claims that do not fit one row wrap onto balanced rows.
 
 Run `scripts/render-pyramid.py` when a shell is available. The default format is svg. Pass `--format mermaid` or `--format ansi` for the other hosts. When no shell is available, emit the same shape from this table. The script is not required for Claude Desktop.
 

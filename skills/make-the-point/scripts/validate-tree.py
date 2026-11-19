@@ -7,7 +7,7 @@ Usage:
   python3 scripts/validate-tree.py --fixtures
 
 Normal mode exits 0 only when every file passes. --self-test exits 0 when packaged
-fixtures match expected pass/fail, the svg, mermaid, ansi, and markdown examples
+fixtures match expected pass/fail, the svg, ansi, and markdown examples
 match the renderer, the deep fixture passes the markdown --check, and svg, ansi,
 and markdown renders of 1 to 12 key-line claims pass --check at the default and
 a narrow width.
@@ -234,7 +234,6 @@ def run_self_test() -> int:
     fixture_json = valid.read_text(encoding="utf-8").strip()
     paints = (
         ("valid-analyze.md", "svg"),
-        ("valid-analyze-mermaid.md", "mermaid"),
         ("valid-analyze-ansi.md", "ansi"),
         ("valid-analyze-markdown.md", "markdown"),
     )
@@ -243,7 +242,7 @@ def run_self_test() -> int:
 
     wide = fixture_dir / "valid-wide-keyline.json"
     deep = fixture_dir / "valid-deep.json"
-    targets = [(wide, fmt) for fmt in ("svg", "mermaid", "ansi", "markdown")] + [(deep, "markdown")]
+    targets = [(wide, fmt) for fmt in ("svg", "ansi", "markdown")] + [(deep, "markdown")]
     for tree, fmt in targets:
         check = subprocess.run(
             [sys.executable, str(render), str(tree), "--check", "--format", fmt],
@@ -322,16 +321,11 @@ def paint_errors(fmt: str, text: str, diagram: str) -> list[str]:
             errors.append("SVG example must not use a full-bleed page fill")
         if "#5B2C6F" not in diagram or "#0E6655" not in diagram:
             errors.append("SVG example must use purple and teal card fills")
-    elif fmt == "mermaid":
-        if "```mermaid" not in diagram or "flowchart TB" not in diagram:
-            errors.append("diagram must be a fenced Mermaid flowchart")
-        if "<svg" in text:
-            errors.append("Mermaid example must not include raw SVG")
     elif fmt == "ansi":
         if not diagram.startswith("```") or "┌" not in diagram or "▼" not in diagram:
             errors.append("diagram must be box drawing inside a code fence")
-        if "<svg" in text or "```mermaid" in text:
-            errors.append("ANSI example must not include SVG or Mermaid")
+        if "<svg" in text:
+            errors.append("ANSI example must not include SVG")
     elif fmt == "markdown":
         if not diagram.startswith("> ### ") or "↳ *" not in diagram:
             errors.append("diagram must be a quoted heading over a nested bullet tree")
@@ -417,7 +411,7 @@ def main(argv: list[str]) -> int:
     parser.add_argument(
         "--self-test",
         action="store_true",
-        help="Check fixtures and svg, mermaid, ansi, and markdown examples",
+        help="Check fixtures and svg, ansi, and markdown examples",
     )
     args = parser.parse_args(argv)
 

@@ -15,7 +15,7 @@ disable-model-invocation: true
 
 Build or extract an **ArgumentTree**. The tree is the product. The pyramid diagram and prose are views of the tree.
 
-Method: [Minto Pyramid Principle](https://piramideschrijven.com/minto-pyramid-principle/). Schema: [argument-tree.schema.json](argument-tree.schema.json). Rules: [pyramid.md](pyramid.md). Examples: [rich SVG](examples/valid-analyze.md), [Mermaid](examples/valid-analyze-mermaid.md), [ANSI](examples/valid-analyze-ansi.md), [Markdown](examples/valid-analyze-markdown.md).
+Method: [Minto Pyramid Principle](https://piramideschrijven.com/minto-pyramid-principle/). Schema: [argument-tree.schema.json](argument-tree.schema.json). Rules: [pyramid.md](pyramid.md). Examples: [rich SVG](examples/valid-analyze.md), [ANSI](examples/valid-analyze-ansi.md), [Markdown](examples/valid-analyze-markdown.md).
 
 ## Inputs
 
@@ -75,7 +75,7 @@ Reply in this order.
 
 In ANSI and SVG, wrap a label to about 40 characters per line. Use at most 3 lines. Use an ellipsis only when the last line still overflows. A narrow card wraps to its own width. Copy words from the claim. Do not invent label text. The Markdown tree prints each claim in full.
 
-Match the example for that paint: [rich SVG](examples/valid-analyze.md), [Mermaid](examples/valid-analyze-mermaid.md), [ANSI](examples/valid-analyze-ansi.md), [Markdown](examples/valid-analyze-markdown.md). Put uncertainty in `notes`. Do not invent nodes.
+Match the example for that paint: [rich SVG](examples/valid-analyze.md), [ANSI](examples/valid-analyze-ansi.md), [Markdown](examples/valid-analyze-markdown.md). Put uncertainty in `notes`. Do not invent nodes.
 
 ## Decision rules
 
@@ -102,4 +102,4 @@ From the repository root:
 python3 skills/make-the-point/scripts/validate-tree.py --self-test
 ```
 
-Must exit 0. Packaged fixtures encode one valid tree, one seven-claim wide tree, one five-level deep tree, one deliberate failure, and svg, mermaid, ansi, and markdown renders of the valid trees.
+Must exit 0. Packaged fixtures encode one valid tree, one seven-claim wide tree, one five-level deep tree, one deliberate failure, and svg, ansi, and markdown renders of the valid trees.

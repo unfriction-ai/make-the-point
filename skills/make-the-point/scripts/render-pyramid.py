@@ -1,18 +1,18 @@
 #!/usr/bin/env python3
-"""Render an ArgumentTree pyramid as svg, mermaid, ansi, or markdown.
+"""Render an ArgumentTree pyramid as svg, ansi, or markdown.
 
-svg, mermaid, and ansi show governingThought and keyLine only. Deeper children
+svg and ansi show governingThought and keyLine only. Deeper children
 and support figures stay in the JSON. markdown is the exception. It renders the
 full tree as nested bullets with each support line under its claim.
 markdown is the default. svg is opt-in and has no page fill.
 svg and ansi lay out for --width: container pixels for svg (default 720) and
 terminal columns for ansi (default 80). Key-line cards that do not fit one row
-wrap onto balanced rows. mermaid and markdown ignore --width.
+wrap onto balanced rows. markdown ignores --width.
 
 Usage:
-  python3 scripts/render-pyramid.py <tree.json> [--format svg|mermaid|ansi|markdown] [--width N]
-  python3 scripts/render-pyramid.py <tree.json> --check [--format svg|mermaid|ansi|markdown] [--width N]
-  python3 scripts/render-pyramid.py <tree.json> --write out.txt [--format svg|mermaid|ansi|markdown] [--width N]
+  python3 scripts/render-pyramid.py <tree.json> [--format svg|ansi|markdown] [--width N]
+  python3 scripts/render-pyramid.py <tree.json> --check [--format svg|ansi|markdown] [--width N]
+  python3 scripts/render-pyramid.py <tree.json> --write out.txt [--format svg|ansi|markdown] [--width N]
 """
 
 from __future__ import annotations
@@ -334,44 +334,6 @@ def render_svg(data: dict[str, Any], width: int) -> str:
     return "\n".join(parts) + "\n"
 
 
-def mermaid_id(node_id: str, used: set[str]) -> str:
-    base = re.sub(r"[^A-Za-z0-9_]", "_", node_id)
-    if not base or base[0].isdigit():
-        base = "n_" + base
-    candidate = base
-    n = 2
-    while candidate in used:
-        candidate = f"{base}_{n}"
-        n += 1
-    used.add(candidate)
-    return candidate
-
-
-def mermaid_text(lines: list[str]) -> str:
-    escaped = [line.replace('"', "'").replace("[", "(").replace("]", ")") for line in lines]
-    return "<br/>".join(escaped)
-
-
-def render_mermaid(data: dict[str, Any]) -> str:
-    if len(data["keyLine"]) < 1:
-        raise ValueError("keyLine must contain at least one node")
-    gt_lines = wrap_and_ellipsize_tail(data["governingThought"], LABEL_MAX, LABEL_LINES)
-    used = {"GT"}
-    ids = [mermaid_id(node["id"], used) for node in data["keyLine"]]
-    key_lines = [
-        wrap_and_ellipsize_tail(node["claim"], LABEL_MAX, LABEL_LINES) for node in data["keyLine"]
-    ]
-    rows = ["flowchart TB", f'  GT["{mermaid_text(gt_lines)}"]']
-    for mid, lines in zip(ids, key_lines):
-        rows.append(f'  {mid}["{mermaid_text(lines)}"]')
-    for mid in ids:
-        rows.append(f"  GT --> {mid}")
-    rows.append(f"  style GT fill:{PURPLE},stroke:{PURPLE_STROKE},color:#fff")
-    for mid in ids:
-        rows.append(f"  style {mid} fill:{TEAL},stroke:{TEAL_STROKE},color:#fff")
-    return "```mermaid\n" + "\n".join(rows) + "\n```\n"
-
-
 UP, DOWN, LEFT, RIGHT = 1, 2, 4, 8
 GLYPHS = {
     UP: "│", DOWN: "│", UP | DOWN: "│",
@@ -485,13 +447,6 @@ def check_fitted_labels(
     return errors
 
 
-def mermaid_label_entries(data: dict[str, Any]) -> list[tuple[str, list[str]]]:
-    entries = [("governingThought", wrap_and_ellipsize_tail(data["governingThought"], LABEL_MAX, LABEL_LINES))]
-    for node in data["keyLine"]:
-        entries.append((node["id"], wrap_and_ellipsize_tail(node["claim"], LABEL_MAX, LABEL_LINES)))
-    return entries
-
-
 def check_svg(data: dict[str, Any], diagram: str, width: int) -> list[str]:
     errors = check_leaks(data, diagram)
     if "<svg" not in diagram:
@@ -540,50 +495,12 @@ def check_svg_geometry(diagram: str, m: Metrics) -> list[str]:
     return errors
 
 
-def check_mermaid(data: dict[str, Any], diagram: str) -> list[str]:
-    errors = check_leaks(data, diagram)
-    if "```mermaid" not in diagram or "flowchart TB" not in diagram:
-        errors.append("diagram must be a fenced Mermaid flowchart")
-    if "<svg" in diagram:
-        errors.append("Mermaid paint must not include raw SVG")
-    if PURPLE not in diagram or TEAL not in diagram:
-        errors.append("missing purple or teal node style")
-    if "GT -->" not in diagram:
-        errors.append("missing edge from governing thought to key line")
-    used = {"GT"}
-    ids = [mermaid_id(node["id"], used) for node in data["keyLine"]]
-    if f"fill:{TEAL}" not in diagram:
-        errors.append("missing teal key-line style")
-    for mid in ids:
-        if f"{mid}[" not in diagram or f"GT --> {mid}" not in diagram:
-            errors.append(f"{mid}: key-line node missing from diagram")
-    deep: list[dict[str, Any]] = []
-    deeper_nodes(data["keyLine"], deep)
-    key_ids = set(ids)
-    used_deep: set[str] = set()
-    for child in deep:
-        cid = child.get("id")
-        if not isinstance(cid, str):
-            continue
-        safe = mermaid_id(cid, used_deep)
-        if safe not in key_ids and f"{safe}[" in diagram:
-            errors.append(f"{cid}: deeper child must not appear in the diagram")
-    errors.extend(
-        check_fitted_labels(
-            diagram,
-            mermaid_label_entries(data),
-            lambda line: mermaid_text([line]) in diagram,
-        )
-    )
-    return errors
-
-
 def check_ansi(data: dict[str, Any], diagram: str, width: int) -> list[str]:
     errors = check_leaks(data, diagram)
     if not diagram.startswith("```\n") or "┌" not in diagram or ARROW not in diagram:
         errors.append("diagram must be box-drawing inside a fenced code block")
-    if "<svg" in diagram or "```mermaid" in diagram:
-        errors.append("ANSI paint must not include SVG or Mermaid")
+    if "<svg" in diagram:
+        errors.append("ANSI paint must not include SVG")
     if PAGE_FILL in diagram.lower():
         errors.append("ANSI paint must not include the SVG page fill")
     for number, line in enumerate(diagram.splitlines(), 1):
@@ -641,13 +558,11 @@ def check_markdown(data: dict[str, Any], diagram: str) -> list[str]:
 
 RENDERERS: dict[str, Callable[[dict[str, Any], int], str]] = {
     "svg": render_svg,
-    "mermaid": lambda data, _width: render_mermaid(data),
     "ansi": render_ansi,
     "markdown": lambda data, _width: render_markdown(data),
 }
 CHECKERS: dict[str, Callable[[dict[str, Any], str, int], list[str]]] = {
     "svg": check_svg,
-    "mermaid": lambda data, diagram, _width: check_mermaid(data, diagram),
     "ansi": check_ansi,
     "markdown": lambda data, diagram, _width: check_markdown(data, diagram),
 }
@@ -661,12 +576,12 @@ def main(argv: list[str]) -> int:
         "--format",
         choices=FORMATS,
         default="markdown",
-        help="markdown (default), ansi, svg, or mermaid",
+        help="markdown (default), ansi, or svg",
     )
     parser.add_argument(
         "--width",
         type=int,
-        help="Target width: svg container pixels (default 720), ansi columns (default 80). mermaid and markdown ignore it",
+        help="Target width: svg container pixels (default 720), ansi columns (default 80). markdown ignores it",
     )
     parser.add_argument(
         "--check",

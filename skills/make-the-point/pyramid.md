@@ -54,18 +54,16 @@ Order: governing thought → key-line points in array order → deepen only as n
 
 ## Surface table
 
-Reply with one diagram, then the JSON. The Markdown tree shows every node and support line. ANSI and SVG show the governing thought and the key line only. Deeper children and support stay in the JSON.
+Reply with one diagram, then the JSON. The Markdown tree shows every node and support line. ANSI shows the governing thought and the key line only. Deeper children and support stay in the JSON.
 
 | Host | Format |
 | --- | --- |
 | Claude Code, a TUI, or another terminal | ANSI box drawing inside a fenced code block (`--format ansi`) |
-| Claude Desktop, Claude Code desktop, Cursor, ChatGPT, GitHub, and other Markdown chats | Nested Markdown tree (`--format markdown`, the default). The governing thought is a quoted heading. The full tree follows as nested bullets, with each support line under its claim. |
-| Optional rich SVG | SVG cards with no `#141414` page fill (`--format svg`). Purple `#5B2C6F` and teal `#0E6655` when the host allows color. |
-| Never | Raw SVG in a terminal |
+| Every other host (Claude Desktop, Claude Code desktop, Cursor, ChatGPT, GitHub, Markdown chats) | Nested Markdown tree (`--format markdown`, the default). The governing thought is a quoted heading. The full tree follows as nested bullets, with each support line under its claim. |
 
-In ANSI and SVG, wrap a label to about 40 characters per line. Use at most 3 lines. Use an ellipsis only when the last line still overflows. A narrow card wraps to its own width. Copy words from the claim. The Markdown tree prints each claim in full. SVG and ANSI fit cards to `--width` (720 px or 80 columns by default), so text keeps its full size at any claim count. Claims that do not fit one row wrap onto balanced rows.
+In ANSI, wrap a label to about 40 characters per line. Use at most 3 lines. Use an ellipsis only when the last line still overflows. A narrow card wraps to its own width. Copy words from the claim. The Markdown tree prints each claim in full. ANSI fits cards to `--width` (80 columns by default), so text keeps its full size at any claim count. Claims that do not fit one row wrap onto balanced rows.
 
-Run `scripts/render-pyramid.py` when a shell is available. The default format is markdown. Pass `--format ansi` for a terminal, or `--format svg` for opt-in rich cards. When no shell is available, emit the same shape from this table. The script is not required for a Markdown reply.
+Run `scripts/render-pyramid.py` when a shell is available. The default format is markdown. Pass `--format ansi` for a terminal. When no shell is available, emit the same shape from this table. The script is not required for a Markdown reply.
 
 Do not use D3, a widget, or a second skill.
 
@@ -77,9 +75,7 @@ Do not use D3, a widget, or a second skill.
 - Do not use overlapping sibling claims ("better UX" and "easier to use").
 - Do not attach evidence that supports a different claim than its parent.
 - Do not put full support figures into diagram labels.
-- Do not expand the diagram into a deep flowchart of every child node. Only the Markdown tree shows full depth.
-- Do not paste raw SVG into a terminal.
-- Do not paint a full-bleed dark page background.
+- Do not expand the ANSI diagram into every child node. Only the Markdown tree shows full depth.
 - Do not use D3, a widget, or a second skill.
 
 

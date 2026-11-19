@@ -1,18 +1,16 @@
 #!/usr/bin/env python3
-"""Render an ArgumentTree pyramid as svg, ansi, or markdown.
+"""Render an ArgumentTree pyramid as markdown or ansi.
 
-svg and ansi show governingThought and keyLine only. Deeper children
-and support figures stay in the JSON. markdown is the exception. It renders the
-full tree as nested bullets with each support line under its claim.
-markdown is the default. svg is opt-in and has no page fill.
-svg and ansi lay out for --width: container pixels for svg (default 720) and
-terminal columns for ansi (default 80). Key-line cards that do not fit one row
-wrap onto balanced rows. markdown ignores --width.
+markdown is the default. It renders the full tree as nested bullets with each
+support line under its claim. ansi shows governingThought and keyLine only.
+Deeper children and support figures stay in the JSON. ansi lays out for
+--width in terminal columns (default 80). Key-line cards that do not fit one
+row wrap onto balanced rows. markdown ignores --width.
 
 Usage:
-  python3 scripts/render-pyramid.py <tree.json> [--format svg|ansi|markdown] [--width N]
-  python3 scripts/render-pyramid.py <tree.json> --check [--format svg|ansi|markdown] [--width N]
-  python3 scripts/render-pyramid.py <tree.json> --write out.txt [--format svg|ansi|markdown] [--width N]
+  python3 scripts/render-pyramid.py <tree.json> [--format markdown|ansi] [--width N]
+  python3 scripts/render-pyramid.py <tree.json> --check [--format markdown|ansi] [--width N]
+  python3 scripts/render-pyramid.py <tree.json> --write out.txt [--format markdown|ansi] [--width N]
 """
 
 from __future__ import annotations
@@ -23,18 +21,11 @@ import math
 import re
 import sys
 from dataclasses import dataclass
-from html import escape, unescape
 from pathlib import Path
 from typing import Any, Callable
 
 LABEL_MAX = 40
 LABEL_LINES = 3
-PURPLE = "#5B2C6F"
-PURPLE_STROKE = "#7D3C98"
-TEAL = "#0E6655"
-TEAL_STROKE = "#148F77"
-CONNECTOR = "#9a9a9a"
-PAGE_FILL = "#141414"
 
 
 @dataclass(frozen=True)
@@ -61,9 +52,6 @@ class Metrics:
     def text_chars(self, box_w: float, font: float) -> int:
         return int((box_w - 2 * self.pad_x) / (self.char_w * font))
 
-    def text_w(self, line: str, font: float) -> float:
-        return len(line) * self.char_w * font
-
     def box_h(self, lines: int, font: float) -> float:
         return lines * self.line_h(font) + 2 * self.pad_y
 
@@ -71,15 +59,10 @@ class Metrics:
         return v // 2 if self.grid else v / 2
 
 
-# char_w is a fraction of font size. ansi boxes use pad_x 2 for the border plus
+# ansi boxes use pad_x 2 for the border plus
 # one space, and grid coordinates are cells, so a box spans [x, x + w). An odd
 # ansi gap gives the trunk between two rows a centre column.
 METRICS: dict[str, Metrics] = {
-    "svg": Metrics(
-        default_width=720, margin=20, gap=16, min_card=150, max_card=300, max_gt=560,
-        key_font=14, gt_font=16, char_w=0.52, pad_x=12, pad_y=12, line_gap=4,
-        row_gap=48, bar_offset=24, grid=False,
-    ),
     "ansi": Metrics(
         default_width=80, margin=0, gap=3, min_card=20, max_card=40, max_gt=64,
         key_font=1, gt_font=1, char_w=1, pad_x=2, pad_y=1, line_gap=0,
@@ -288,52 +271,6 @@ def layout(data: dict[str, Any], m: Metrics, width: int) -> Layout:
     return Layout(m, width, top + m.margin, gt, tuple(rows))
 
 
-def svg_text_block(box: Box, font: float, m: Metrics) -> str:
-    line_h = m.line_h(font)
-    top = box.y + (box.h - len(box.lines) * line_h) / 2
-    cx = box.x + box.w / 2
-    chunks = []
-    for i, line in enumerate(box.lines):
-        baseline = top + i * line_h + (line_h + 0.7 * font) / 2
-        chunks.append(
-            f'<text x="{cx:.1f}" y="{baseline:.1f}" text-anchor="middle" '
-            f'fill="#ffffff" font-family="system-ui,-apple-system,sans-serif" '
-            f'font-size="{font:g}">{escape(line)}</text>'
-        )
-    return "\n".join(chunks)
-
-
-def svg_wire(x0: float, y0: float, x1: float, y1: float) -> str:
-    move = f"V {y1:.1f}" if x0 == x1 else f"H {x1:.1f}"
-    return f'<path d="M {x0:.1f} {y0:.1f} {move}" stroke="{CONNECTOR}" stroke-width="1.5" fill="none"/>'
-
-
-def svg_rect(box: Box, fill: str, stroke: str) -> str:
-    rid = f'id="{escape(box.node_id)}" ' if box.node_id else ""
-    return (
-        f'<rect {rid}x="{box.x:.1f}" y="{box.y:.1f}" width="{box.w:.1f}" height="{box.h:.1f}" '
-        f'rx="10" fill="{fill}" stroke="{stroke}"/>'
-    )
-
-
-def render_svg(data: dict[str, Any], width: int) -> str:
-    m = METRICS["svg"]
-    lay = layout(data, m, width)
-    parts = [
-        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {lay.width:.1f} {lay.height:.1f}" '
-        f'width="100%" role="img" aria-label="Argument pyramid">',
-    ]
-    parts.extend(svg_wire(*wire) for wire in lay.wires() + lay.drops())
-    parts.append(svg_rect(lay.gt, PURPLE, PURPLE_STROKE))
-    parts.append(svg_text_block(lay.gt, m.gt_font, m))
-    for row in lay.rows:
-        for card in row.cards:
-            parts.append(svg_rect(card, TEAL, TEAL_STROKE))
-            parts.append(svg_text_block(card, m.key_font, m))
-    parts.append("</svg>")
-    return "\n".join(parts) + "\n"
-
-
 UP, DOWN, LEFT, RIGHT = 1, 2, 4, 8
 GLYPHS = {
     UP: "│", DOWN: "│", UP | DOWN: "│",
@@ -418,13 +355,13 @@ def check_leaks(data: dict[str, Any], diagram: str) -> list[str]:
     supports: list[str] = []
     collect_support(data["keyLine"], supports)
     for figure in supports:
-        if figure in diagram or escape(figure) in diagram:
+        if figure in diagram:
             errors.append(f"support figure leaked into diagram: {figure!r}")
     deep: list[dict[str, Any]] = []
     deeper_nodes(data["keyLine"], deep)
     for child in deep:
         claim = child.get("claim")
-        if isinstance(claim, str) and claim and (claim in diagram or escape(claim) in diagram):
+        if isinstance(claim, str) and claim and claim in diagram:
             errors.append(f"{child.get('id')}: deeper claim must not appear in the diagram")
     return errors
 
@@ -447,62 +384,10 @@ def check_fitted_labels(
     return errors
 
 
-def check_svg(data: dict[str, Any], diagram: str, width: int) -> list[str]:
-    errors = check_leaks(data, diagram)
-    if "<svg" not in diagram:
-        errors.append("diagram must be an SVG card pyramid")
-    if PURPLE not in diagram or TEAL not in diagram:
-        errors.append("missing purple or teal card fill")
-    if PAGE_FILL in diagram.lower():
-        errors.append("SVG must not use a full-bleed page fill")
-    if 'width="100%" height="100%"' in diagram:
-        errors.append("SVG must not paint a page-sized background rect")
-    m = METRICS["svg"]
-    view = re.search(r'viewBox="0 0 ([\d.]+) ([\d.]+)"', diagram)
-    if not view or float(view.group(1)) != width:
-        errors.append(f"SVG viewBox width must equal --width {width}")
-    lay = layout(data, m, width)
-    errors.extend(check_fitted_labels(diagram, lay.label_entries(), lambda line: escape(line) in diagram))
-    errors.extend(check_svg_geometry(diagram, m))
-    for node in data["keyLine"]:
-        if f'id="{escape(node["id"])}"' not in diagram:
-            errors.append(f"{node['id']}: node id missing from diagram")
-    deep: list[dict[str, Any]] = []
-    deeper_nodes(data["keyLine"], deep)
-    for child in deep:
-        cid = child.get("id")
-        if isinstance(cid, str) and f'id="{escape(cid)}"' in diagram:
-            errors.append(f"{cid}: deeper child must not appear in the diagram")
-    return errors
-
-
-def check_svg_geometry(diagram: str, m: Metrics) -> list[str]:
-    errors: list[str] = []
-    rect_re = r'<rect [^>]*?x="([\d.]+)" y="([\d.]+)" width="([\d.]+)" height="([\d.]+)"'
-    rects = [tuple(map(float, g)) for g in re.findall(rect_re, diagram)]
-    for i, (ax, ay, aw, ah) in enumerate(rects):
-        for bx, by, bw, bh in rects[i + 1 :]:
-            if ax < bx + bw and bx < ax + aw and ay < by + bh and by < ay + ah:
-                errors.append(f"cards overlap at ({ax:.0f},{ay:.0f}) and ({bx:.0f},{by:.0f})")
-    text_re = r'<text x="([\d.]+)" y="([\d.]+)"[^>]*font-size="([\d.]+)">(.*?)</text>'
-    for tx, ty, size, body in re.findall(text_re, diagram):
-        x, y, font, line = float(tx), float(ty), float(size), unescape(body)
-        home = [r for r in rects if r[0] <= x <= r[0] + r[2] and r[1] <= y <= r[1] + r[3]]
-        if not home:
-            errors.append(f"label line outside every card: {line!r}")
-        elif m.text_w(line, font) > home[0][2] - 2 * m.pad_x:
-            errors.append(f"label line wider than its card: {line!r}")
-    return errors
-
-
 def check_ansi(data: dict[str, Any], diagram: str, width: int) -> list[str]:
     errors = check_leaks(data, diagram)
     if not diagram.startswith("```\n") or "┌" not in diagram or ARROW not in diagram:
         errors.append("diagram must be box-drawing inside a fenced code block")
-    if "<svg" in diagram:
-        errors.append("ANSI paint must not include SVG")
-    if PAGE_FILL in diagram.lower():
-        errors.append("ANSI paint must not include the SVG page fill")
     for number, line in enumerate(diagram.splitlines(), 1):
         if len(line) > width:
             errors.append(f"line {number} is {len(line)} columns, wider than --width {width}")
@@ -557,12 +442,10 @@ def check_markdown(data: dict[str, Any], diagram: str) -> list[str]:
 
 
 RENDERERS: dict[str, Callable[[dict[str, Any], int], str]] = {
-    "svg": render_svg,
     "ansi": render_ansi,
     "markdown": lambda data, _width: render_markdown(data),
 }
 CHECKERS: dict[str, Callable[[dict[str, Any], str, int], list[str]]] = {
-    "svg": check_svg,
     "ansi": check_ansi,
     "markdown": lambda data, diagram, _width: check_markdown(data, diagram),
 }
@@ -576,17 +459,17 @@ def main(argv: list[str]) -> int:
         "--format",
         choices=FORMATS,
         default="markdown",
-        help="markdown (default), ansi, or svg",
+        help="markdown (default) or ansi",
     )
     parser.add_argument(
         "--width",
         type=int,
-        help="Target width: svg container pixels (default 720), ansi columns (default 80). markdown ignores it",
+        help="Target width in ansi columns (default 80). markdown ignores it",
     )
     parser.add_argument(
         "--check",
         action="store_true",
-        help="Check the chosen format: labels, fit, colors or fences, and depth. Only markdown shows the full tree",
+        help="Check the chosen format: labels, fit, fences, and depth. Only markdown shows the full tree",
     )
     parser.add_argument(
         "--write",

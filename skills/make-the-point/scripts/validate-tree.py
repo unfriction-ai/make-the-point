@@ -7,10 +7,10 @@ Usage:
   python3 scripts/validate-tree.py --fixtures
 
 Normal mode exits 0 only when every file passes. --self-test exits 0 when packaged
-fixtures match expected pass/fail, the svg, ansi, and markdown examples
-match the renderer, the deep fixture passes the markdown --check, and svg, ansi,
-and markdown renders of 1 to 12 key-line claims pass --check at the default and
-a narrow width.
+fixtures match expected pass/fail, the ansi and markdown examples match the
+renderer, the deep fixture passes the markdown --check, a run without --format
+prints markdown, and ansi and markdown renders of 1 to 12 key-line claims pass
+--check.
 """
 
 from __future__ import annotations
@@ -233,7 +233,6 @@ def run_self_test() -> int:
     valid = fixture_dir / "valid-analyze.json"
     fixture_json = valid.read_text(encoding="utf-8").strip()
     paints = (
-        ("valid-analyze.md", "svg"),
         ("valid-analyze-ansi.md", "ansi"),
         ("valid-analyze-markdown.md", "markdown"),
     )
@@ -242,7 +241,7 @@ def run_self_test() -> int:
 
     wide = fixture_dir / "valid-wide-keyline.json"
     deep = fixture_dir / "valid-deep.json"
-    targets = [(wide, fmt) for fmt in ("svg", "ansi", "markdown")] + [(deep, "markdown")]
+    targets = [(wide, fmt) for fmt in ("ansi", "markdown")] + [(deep, "markdown")]
     for tree, fmt in targets:
         check = subprocess.run(
             [sys.executable, str(render), str(tree), "--check", "--format", fmt],
@@ -272,7 +271,7 @@ def check_default_format(render: Path, tree: Path) -> int:
     return 0
 
 
-WIDTH_CASES = (("svg", None), ("ansi", None), ("svg", 480), ("ansi", 60), ("markdown", None))
+WIDTH_CASES = (("ansi", None), ("ansi", 60), ("markdown", None))
 
 
 def check_key_line_counts(render: Path, wide: Path, counts: range = range(1, 13)) -> int:
@@ -295,7 +294,7 @@ def check_key_line_counts(render: Path, wide: Path, counts: range = range(1, 13)
                     sys.stdout.write(check.stdout)
                     sys.stderr.write(check.stderr)
     cases = len(counts) * len(WIDTH_CASES)
-    print(f"{'OK' if not failed else 'FAIL':14} key-line counts {counts.start}-{counts.stop - 1}: {cases - failed}/{cases} svg, ansi, and markdown renders pass --check")
+    print(f"{'OK' if not failed else 'FAIL':14} key-line counts {counts.start}-{counts.stop - 1}: {cases - failed}/{cases} ansi and markdown renders pass --check")
     return failed
 
 
@@ -314,23 +313,14 @@ def fenced_json(text: str) -> str | None:
 
 def paint_errors(fmt: str, text: str, diagram: str) -> list[str]:
     errors: list[str] = []
-    if fmt == "svg":
-        if "<svg" not in diagram:
-            errors.append("diagram must be SVG")
-        if "#141414" in text.lower():
-            errors.append("SVG example must not use a full-bleed page fill")
-        if "#5B2C6F" not in diagram or "#0E6655" not in diagram:
-            errors.append("SVG example must use purple and teal card fills")
-    elif fmt == "ansi":
+    if fmt == "ansi":
         if not diagram.startswith("```") or "┌" not in diagram or "▼" not in diagram:
             errors.append("diagram must be box drawing inside a code fence")
-        if "<svg" in text:
-            errors.append("ANSI example must not include SVG")
     elif fmt == "markdown":
         if not diagram.startswith("> ### ") or "↳ *" not in diagram:
             errors.append("diagram must be a quoted heading over a nested bullet tree")
-        if "```" in diagram or "<svg" in text:
-            errors.append("Markdown example diagram must not include fences or raw SVG")
+        if "```" in diagram:
+            errors.append("Markdown example diagram must not include fences")
     else:
         errors.append(f"unknown format {fmt}")
     return errors
@@ -411,7 +401,7 @@ def main(argv: list[str]) -> int:
     parser.add_argument(
         "--self-test",
         action="store_true",
-        help="Check fixtures and svg, ansi, and markdown examples",
+        help="Check fixtures and ansi and markdown examples",
     )
     args = parser.parse_args(argv)
 

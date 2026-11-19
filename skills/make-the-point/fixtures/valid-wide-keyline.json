@@ -73,6 +73,6 @@
   ],
   "prose": "Make decisions from the tail.",
   "notes": [
-    "Synthetic wide keyLine fixture for SVG readability."
+    "Synthetic wide keyLine fixture for layout readability."
   ]
 }

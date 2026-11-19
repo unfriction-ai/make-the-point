@@ -1,6 +1,6 @@
 # ANSI example
 
-ANSI box drawing for a terminal or TUI. Keep the drawing inside a code fence. Do not paste raw SVG into a terminal.
+ANSI box drawing for a terminal or TUI. Keep the drawing inside a code fence.
 
 ## Pyramid diagram
 

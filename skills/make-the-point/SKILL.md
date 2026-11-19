@@ -5,8 +5,8 @@ description: >-
   Minto Pyramid Principle. Accepts text, a link, or an image. Canonical output
   is one ArgumentTree JSON object. Reply with the host diagram of the argument,
   then that JSON. Use ANSI boxes in a terminal and a nested Markdown tree of the
-  full argument everywhere else. Prose comes only from the tree. Use for /make-the-point or when the user wants pyramid
-  structuring, SCQA, governing thought, key line, MECE argument trees, or
+  full argument everywhere else. Prose comes only from the tree. Use for
+  /make-the-point or when the user wants pyramid structuring, SCQA, governing thought, key line, MECE argument trees, or
   eval-friendly reading and writing of arguments.
 disable-model-invocation: true
 ---
@@ -15,7 +15,7 @@ disable-model-invocation: true
 
 Build or extract an **ArgumentTree**. The tree is the product. The pyramid diagram and prose are views of the tree.
 
-Method: [Minto Pyramid Principle](https://piramideschrijven.com/minto-pyramid-principle/). Schema: [argument-tree.schema.json](argument-tree.schema.json). Rules: [pyramid.md](pyramid.md). Examples: [rich SVG](examples/valid-analyze.md), [ANSI](examples/valid-analyze-ansi.md), [Markdown](examples/valid-analyze-markdown.md).
+Method: [Minto Pyramid Principle](https://piramideschrijven.com/minto-pyramid-principle/). Schema: [argument-tree.schema.json](argument-tree.schema.json). Rules: [pyramid.md](pyramid.md). Examples: [Markdown](examples/valid-analyze-markdown.md), [ANSI](examples/valid-analyze-ansi.md).
 
 ## Inputs
 
@@ -52,7 +52,7 @@ python3 skills/make-the-point/scripts/validate-tree.py path/to/tree.json
 python3 ${CLAUDE_SKILL_DIR}/scripts/render-pyramid.py path/to/tree.json
 ```
 
-From the repository root, the script is `skills/make-the-point/scripts/render-pyramid.py`. The default format is markdown. Pass `--format ansi` for a terminal, or `--format svg` for opt-in rich cards. Pass `--width` with the container width in pixels for svg or the terminal columns for ansi. Key-line cards wrap onto balanced rows to fit it.
+From the repository root, the script is `skills/make-the-point/scripts/render-pyramid.py`. The default format is markdown. Pass `--format ansi` for a terminal. Pass `--width` with the terminal columns for ansi. Key-line cards wrap onto balanced rows to fit it.
 
 Fix until validate exits 0. Do not treat a freeform essay as done.
 
@@ -60,7 +60,7 @@ Fix until validate exits 0. Do not treat a freeform essay as done.
 
 Reply in this order.
 
-1. The diagram for one row of the surface table. The Markdown tree shows every node and support line. ANSI and SVG show `governingThought` and `keyLine` only. Deeper `children` and `support` stay in the JSON.
+1. The diagram for one row of the surface table. The Markdown tree shows every node and support line. ANSI shows `governingThought` and `keyLine` only. Deeper `children` and `support` stay in the JSON.
 2. The ArgumentTree JSON in a `json` fence. Evals score this object.
 3. An optional one-line summary after the JSON.
 
@@ -69,13 +69,11 @@ Reply in this order.
 | Host | Format |
 | --- | --- |
 | Claude Code, a TUI, or another terminal | ANSI box drawing inside a fenced code block (`--format ansi`) |
-| Claude Desktop, Claude Code desktop, Cursor, ChatGPT, GitHub, and other Markdown chats | Nested Markdown tree (`--format markdown`, the default). The governing thought is a quoted heading. The full tree follows as nested bullets, with each support line under its claim. |
-| Optional rich SVG | SVG cards with no `#141414` page fill (`--format svg`). Purple `#5B2C6F` and teal `#0E6655` when the host allows color. |
-| Never | Raw SVG in a terminal |
+| Every other host (Claude Desktop, Claude Code desktop, Cursor, ChatGPT, GitHub, Markdown chats) | Nested Markdown tree (`--format markdown`, the default). The governing thought is a quoted heading. The full tree follows as nested bullets, with each support line under its claim. |
 
-In ANSI and SVG, wrap a label to about 40 characters per line. Use at most 3 lines. Use an ellipsis only when the last line still overflows. A narrow card wraps to its own width. Copy words from the claim. Do not invent label text. The Markdown tree prints each claim in full.
+In ANSI, wrap a label to about 40 characters per line. Use at most 3 lines. Use an ellipsis only when the last line still overflows. A narrow card wraps to its own width. Copy words from the claim. Do not invent label text. The Markdown tree prints each claim in full.
 
-Match the example for that paint: [rich SVG](examples/valid-analyze.md), [ANSI](examples/valid-analyze-ansi.md), [Markdown](examples/valid-analyze-markdown.md). Put uncertainty in `notes`. Do not invent nodes.
+Match the example for that paint: [Markdown](examples/valid-analyze-markdown.md), [ANSI](examples/valid-analyze-ansi.md). Put uncertainty in `notes`. Do not invent nodes.
 
 ## Decision rules
 
@@ -86,8 +84,7 @@ Match the example for that paint: [rich SVG](examples/valid-analyze.md), [ANSI](
 - Analyze mode maps the source. Prefer the author's point. If the source has no clear point, say so in `notes` and still force a best-effort tree.
 - Construct mode invents structure for the user's intent, then drafts prose from it.
 - Diagram labels never invent wording absent from the claim. Shorten only by wrapping, and ellipsize only the overflow.
-- Pick the paint from the surface table. Do not paste raw SVG into a terminal.
-- Do not paint a full-bleed dark page background on the SVG.
+- Pick the paint from the surface table.
 - Do not use D3, a widget, or a second skill.
 
 ## Structural check
@@ -102,4 +99,4 @@ From the repository root:
 python3 skills/make-the-point/scripts/validate-tree.py --self-test
 ```
 
-Must exit 0. Packaged fixtures encode one valid tree, one seven-claim wide tree, one five-level deep tree, one deliberate failure, and svg, ansi, and markdown renders of the valid trees.
+Must exit 0. Packaged fixtures encode one valid tree, one seven-claim wide tree, one five-level deep tree, one deliberate failure, and markdown and ansi renders of the valid trees.

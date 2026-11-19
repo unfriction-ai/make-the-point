@@ -256,8 +256,21 @@ def run_self_test() -> int:
         if check.returncode != 0:
             failed += 1
 
+    failed += check_default_format(render, valid)
     failed += check_key_line_counts(render, wide)
     return 1 if failed else 0
+
+
+def check_default_format(render: Path, tree: Path) -> int:
+    runs = [
+        subprocess.run([sys.executable, str(render), str(tree), *extra], check=False, capture_output=True, text=True)
+        for extra in ([], ["--format", "markdown"])
+    ]
+    if any(run.returncode for run in runs) or runs[0].stdout != runs[1].stdout:
+        print(f"FAIL           default format is not markdown for {tree}")
+        return 1
+    print(f"OK             default format is markdown")
+    return 0
 
 
 WIDTH_CASES = (("svg", None), ("ansi", None), ("svg", 480), ("ansi", 60), ("markdown", None))

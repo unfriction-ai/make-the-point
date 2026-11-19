@@ -4,7 +4,7 @@
 svg, mermaid, and ansi show governingThought and keyLine only. Deeper children
 and support figures stay in the JSON. markdown is the exception. It renders the
 full tree as nested bullets with each support line under its claim.
-svg is the default and has no page fill.
+markdown is the default. svg is opt-in and has no page fill.
 svg and ansi lay out for --width: container pixels for svg (default 720) and
 terminal columns for ansi (default 80). Key-line cards that do not fit one row
 wrap onto balanced rows. mermaid and markdown ignore --width.
@@ -660,8 +660,8 @@ def main(argv: list[str]) -> int:
     parser.add_argument(
         "--format",
         choices=FORMATS,
-        default="svg",
-        help="svg (default), mermaid, ansi, or markdown",
+        default="markdown",
+        help="markdown (default), ansi, svg, or mermaid",
     )
     parser.add_argument(
         "--width",

@@ -1,6 +1,6 @@
 # Rich SVG example
 
-These are the optional rich SVG cards. Claude Desktop uses this same paint. The SVG has no dark page background.
+These are the optional rich SVG cards (`--format svg`). The SVG has no dark page background.
 
 ## Pyramid diagram
 

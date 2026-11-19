@@ -54,20 +54,18 @@ Order: governing thought → key-line points in array order → deepen only as n
 
 ## Surface table
 
-Reply with one diagram, then the JSON. The diagram shows the governing thought and the key line only. Deeper children and support stay in the JSON. The Markdown tree is the exception. It shows every node and support line.
+Reply with one diagram, then the JSON. The Markdown tree shows every node and support line. ANSI and SVG show the governing thought and the key line only. Deeper children and support stay in the JSON.
 
 | Host | Format |
 | --- | --- |
-| Claude Code, a TUI, or another terminal | ANSI box drawing inside a fenced code block |
-| Claude Desktop | SVG cards. No dark page background. Purple `#5B2C6F` and teal `#0E6655` when the host allows color. |
-| Cursor, ChatGPT, and other Markdown chats | Mermaid flowchart inside a `mermaid` fence, with purple and teal node styles |
-| Claude Code desktop, GitHub, and other Markdown surfaces without Mermaid | Nested Markdown tree (`--format markdown`). The governing thought is a quoted heading. The full tree follows as nested bullets, with each support line under its claim. |
-| Optional rich SVG | SVG cards with no `#141414` page fill |
+| Claude Code, a TUI, or another terminal | ANSI box drawing inside a fenced code block (`--format ansi`) |
+| Claude Desktop, Claude Code desktop, Cursor, ChatGPT, GitHub, and other Markdown chats | Nested Markdown tree (`--format markdown`, the default). The governing thought is a quoted heading. The full tree follows as nested bullets, with each support line under its claim. |
+| Optional rich SVG | SVG cards with no `#141414` page fill (`--format svg`). Purple `#5B2C6F` and teal `#0E6655` when the host allows color. |
 | Never | Raw SVG in a terminal |
 
-Wrap a label to about 40 characters per line. Use at most 3 lines. Use an ellipsis only when the last line still overflows. A narrow card wraps to its own width. Copy words from the claim. The Markdown tree prints each claim in full. SVG and ANSI fit cards to `--width` (720 px or 80 columns by default), so text keeps its full size at any claim count. Claims that do not fit one row wrap onto balanced rows.
+In ANSI and SVG, wrap a label to about 40 characters per line. Use at most 3 lines. Use an ellipsis only when the last line still overflows. A narrow card wraps to its own width. Copy words from the claim. The Markdown tree prints each claim in full. SVG and ANSI fit cards to `--width` (720 px or 80 columns by default), so text keeps its full size at any claim count. Claims that do not fit one row wrap onto balanced rows.
 
-Run `scripts/render-pyramid.py` when a shell is available. The default format is svg. Pass `--format mermaid`, `--format ansi`, or `--format markdown` for the other hosts. When no shell is available, emit the same shape from this table. The script is not required for Claude Desktop.
+Run `scripts/render-pyramid.py` when a shell is available. The default format is markdown. Pass `--format ansi` for a terminal, or `--format svg` for opt-in rich cards. When no shell is available, emit the same shape from this table. The script is not required for a Markdown reply.
 
 Do not use D3, a widget, or a second skill.
 

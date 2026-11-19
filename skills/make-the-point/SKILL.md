@@ -14,6 +14,8 @@ disable-model-invocation: true
 
 # Make the point
 
+This is make-the-point 0.3.1.
+
 Build or extract an **ArgumentTree**. The tree is the product. The pyramid diagram and prose are views of the tree.
 
 Method: [Minto Pyramid Principle](https://piramideschrijven.com/minto-pyramid-principle/). Schema: [argument-tree.schema.json](argument-tree.schema.json). Rules: [pyramid.md](pyramid.md). Example: [valid-analyze-markdown.md](examples/valid-analyze-markdown.md).
@@ -27,6 +29,8 @@ One of:
 - **image** — read the image (OCR / describe visible text and structure)
 
 If the mode is unclear: **analyze** when source writing exists; **construct** when the user wants a message built.
+
+`--version` as the only argument makes the reply one line: the version line above, then the base directory this skill loaded from, as in `make-the-point 0.3.1, loaded from <base directory>`. Build no tree and stop.
 
 `--debug` anywhere in the arguments turns on debug output, as in `/make-the-point --debug <source>`. Remove it before you read the source.
 
@@ -78,7 +82,8 @@ Reply with `--debug`, in this order:
 
 1. The diagram.
 2. The ArgumentTree JSON in a `json` fence.
-3. An optional one-line summary after the JSON.
+3. The line `Plugin: make-the-point <version>`, with the version from the line at the top of this file. The JSON's `version` field is the schema version, not the plugin version.
+4. An optional one-line summary.
 
 Start the reply with the diagram's first line, `> ### `. Put nothing before it: no status line, no note about validation or rendering. Keep the summary to one sentence.
 

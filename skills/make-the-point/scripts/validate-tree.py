@@ -7,9 +7,10 @@ Usage:
   python3 scripts/validate-tree.py --fixtures
 
 Normal mode exits 0 only when every file passes. --self-test exits 0 when packaged
-fixtures match expected pass/fail, the svg, mermaid, and ansi examples match
-the renderer, and svg and ansi renders of 1 to 12 key-line claims pass --check
-at the default and a narrow width.
+fixtures match expected pass/fail, the svg, mermaid, ansi, and markdown examples
+match the renderer, the deep fixture passes the markdown --check, and svg, ansi,
+and markdown renders of 1 to 12 key-line claims pass --check at the default and
+a narrow width.
 """
 
 from __future__ import annotations
@@ -206,6 +207,7 @@ def run_self_test() -> int:
     cases = [
         (fixture_dir / "valid-analyze.json", True),
         (fixture_dir / "valid-wide-keyline.json", True),
+        (fixture_dir / "valid-deep.json", True),
         (fixture_dir / "invalid-missing-support.json", False),
     ]
     failed = 0
@@ -234,14 +236,17 @@ def run_self_test() -> int:
         ("valid-analyze.md", "svg"),
         ("valid-analyze-mermaid.md", "mermaid"),
         ("valid-analyze-ansi.md", "ansi"),
+        ("valid-analyze-markdown.md", "markdown"),
     )
     for name, fmt in paints:
         failed += check_example(skill_dir / "examples" / name, valid, render, fmt, fixture_json)
 
     wide = fixture_dir / "valid-wide-keyline.json"
-    for fmt in ("svg", "mermaid", "ansi"):
+    deep = fixture_dir / "valid-deep.json"
+    targets = [(wide, fmt) for fmt in ("svg", "mermaid", "ansi", "markdown")] + [(deep, "markdown")]
+    for tree, fmt in targets:
         check = subprocess.run(
-            [sys.executable, str(render), str(wide), "--check", "--format", fmt],
+            [sys.executable, str(render), str(tree), "--check", "--format", fmt],
             check=False,
             capture_output=True,
             text=True,
@@ -255,7 +260,7 @@ def run_self_test() -> int:
     return 1 if failed else 0
 
 
-WIDTH_CASES = (("svg", None), ("ansi", None), ("svg", 480), ("ansi", 60))
+WIDTH_CASES = (("svg", None), ("ansi", None), ("svg", 480), ("ansi", 60), ("markdown", None))
 
 
 def check_key_line_counts(render: Path, wide: Path, counts: range = range(1, 13)) -> int:
@@ -278,7 +283,7 @@ def check_key_line_counts(render: Path, wide: Path, counts: range = range(1, 13)
                     sys.stdout.write(check.stdout)
                     sys.stderr.write(check.stderr)
     cases = len(counts) * len(WIDTH_CASES)
-    print(f"{'OK' if not failed else 'FAIL':14} key-line counts {counts.start}-{counts.stop - 1}: {cases - failed}/{cases} svg and ansi renders fit their width")
+    print(f"{'OK' if not failed else 'FAIL':14} key-line counts {counts.start}-{counts.stop - 1}: {cases - failed}/{cases} svg, ansi, and markdown renders pass --check")
     return failed
 
 
@@ -314,6 +319,11 @@ def paint_errors(fmt: str, text: str, diagram: str) -> list[str]:
             errors.append("diagram must be box drawing inside a code fence")
         if "<svg" in text or "```mermaid" in text:
             errors.append("ANSI example must not include SVG or Mermaid")
+    elif fmt == "markdown":
+        if not diagram.startswith("> ### ") or "↳ *" not in diagram:
+            errors.append("diagram must be a quoted heading over a nested bullet tree")
+        if "```" in diagram or "<svg" in text:
+            errors.append("Markdown example diagram must not include fences or raw SVG")
     else:
         errors.append(f"unknown format {fmt}")
     return errors
@@ -394,7 +404,7 @@ def main(argv: list[str]) -> int:
     parser.add_argument(
         "--self-test",
         action="store_true",
-        help="Check fixtures and svg, mermaid, and ansi examples",
+        help="Check fixtures and svg, mermaid, ansi, and markdown examples",
     )
     args = parser.parse_args(argv)
 

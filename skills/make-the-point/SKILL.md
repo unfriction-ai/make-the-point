@@ -74,6 +74,8 @@ Reply with `--debug`, in this order:
 2. The ArgumentTree JSON in a `json` fence.
 3. An optional one-line summary after the JSON.
 
+Start the reply with the diagram's first line, `> ### `. Put nothing before it: no status line, no note about validation or rendering. Keep the summary to one sentence.
+
 Evals invoke the skill with `--debug` and score the JSON object. Without `--debug`, the reply has no `json` fence.
 
 Every host gets the nested Markdown tree, terminals and Claude Code included. Claude Code renders it in the terminal. The governing thought is a quoted heading. The full tree follows as nested bullets, with each support line under its claim. Each claim prints in full.

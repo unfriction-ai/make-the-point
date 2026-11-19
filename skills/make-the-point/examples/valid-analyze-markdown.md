@@ -18,7 +18,6 @@ Nested Markdown tree for every host. It uses no raw HTML. The governing thought 
 
 The reply adds this fence only when the skill runs with `--debug`.
 
-
 ```json
 {
   "version": 1,

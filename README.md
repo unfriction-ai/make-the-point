@@ -50,3 +50,7 @@ python3 skills/make-the-point/scripts/validate-tree.py --self-test
 ```
 
 Exit code 0 means the packaged fixtures match the expected pass and the expected failure.
+
+## Releases
+
+Each release is a tag, a commit, one version in every manifest, and a zip with its SHA-256. [RELEASING.md](RELEASING.md) states the contract, how to cut a release, and how to verify an install.

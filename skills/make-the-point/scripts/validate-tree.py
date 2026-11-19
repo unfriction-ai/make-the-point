@@ -7,9 +7,9 @@ Usage:
   python3 scripts/validate-tree.py --fixtures
 
 Normal mode exits 0 only when every file passes. --self-test exits 0 when packaged
-fixtures match expected pass/fail, the example matches the renderer, the wide
-and deep fixtures pass --check, and renders of 1 to 12 key-line claims pass
---check.
+fixtures match expected pass/fail, the example and the SKILL.md template match
+the renderer, the wide and deep fixtures pass --check, and renders of 1 to 12
+key-line claims pass --check.
 """
 
 from __future__ import annotations
@@ -248,7 +248,26 @@ def run_self_test() -> int:
             failed += 1
 
     failed += check_key_line_counts(render, wide)
+    failed += check_skill_template(skill_dir / "SKILL.md", valid, render)
     return 1 if failed else 0
+
+
+def check_skill_template(skill: Path, valid: Path, render: Path) -> int:
+    """Hosts without a shell copy this fence by hand, so it must match the renderer byte for byte."""
+    match = re.search(r"```markdown\n(.*?\n)```", skill.read_text(encoding="utf-8"), re.DOTALL)
+    drawn = subprocess.run([sys.executable, str(render), str(valid)], check=False, capture_output=True, text=True)
+    if match is None:
+        print(f"FAIL {skill}: missing markdown fence")
+        return 1
+    if match.group(1) != drawn.stdout:
+        print(f"FAIL {skill}: markdown fence does not match renderer output for {valid.name}")
+        diff = difflib.unified_diff(
+            drawn.stdout.splitlines(True), match.group(1).splitlines(True), fromfile="renderer", tofile=skill.name
+        )
+        sys.stdout.writelines(diff)
+        return 1
+    print(f"{'OK':14} {skill} template")
+    return 0
 
 
 def check_key_line_counts(render: Path, wide: Path, counts: range = range(1, 13)) -> int:
@@ -369,7 +388,7 @@ def main(argv: list[str]) -> int:
     parser.add_argument(
         "--self-test",
         action="store_true",
-        help="Check fixtures, the example, and --check across 1 to 12 key-line claims",
+        help="Check fixtures, the example, the SKILL.md template, and --check across 1 to 12 key-line claims",
     )
     args = parser.parse_args(argv)
 

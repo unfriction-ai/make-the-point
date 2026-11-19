@@ -66,7 +66,28 @@ Reply in this order.
 
 Every host gets the nested Markdown tree, terminals and Claude Code included. Claude Code renders it in the terminal. The governing thought is a quoted heading. The full tree follows as nested bullets, with each support line under its claim. Each claim prints in full.
 
-Match the [example](examples/valid-analyze-markdown.md). Put uncertainty in `notes`. Do not invent nodes.
+The script writes this Markdown for the [example](examples/valid-analyze-markdown.md) tree. Without a shell, write the same shape by hand:
+
+```markdown
+> ### Appoint one backlog owner with explicit decision rights.
+
+- `K1` **Split ownership creates priority thrash.**
+  - `K1.1` Each team optimizes local goals.\
+    ↳ *Sprint goals diverged three times last quarter.*
+* `K2` **A single owner can sequence work against one outcome.**\
+  ↳ *Peer products that use one owner ship on a shared roadmap.*
+- `K3` **Decision rights remove escalation latency.**\
+  ↳ *Escalations currently take a median of five days.*
+```
+
+- Start with `> ### ` and the governing thought. Add no bold to it.
+- Write one bullet per node: the ID in backticks, then the claim. Bold the key-line claims only.
+- Indent each child two spaces deeper than its parent. Put no blank line inside the tree.
+- Put support on the claim's own bullet, never on a new bullet. End the claim line with `\`, then write `↳ *support*` on the next line, indented two spaces past the bullet marker. With several support lines, end every line but the last with `\`.
+- Never put a backslash before a bullet marker. Escape only Markdown characters inside claim and support text, such as `\$` or `\*`.
+- The `-` and `*` markers alternate between key lines that have children, which spaces the groups apart. By hand, `-` everywhere is fine.
+
+Put uncertainty in `notes`. Do not invent nodes.
 
 ## Decision rules
 

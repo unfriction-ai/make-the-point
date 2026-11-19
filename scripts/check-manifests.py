@@ -56,12 +56,16 @@ CATALOGS = (
 )
 
 
-def load(path: str, errors: list[str]) -> Any:
+def load(path: str, errors: list[str]) -> dict[str, Any] | None:
     try:
-        return json.loads((ROOT / path).read_text(encoding="utf-8"))
+        data = json.loads((ROOT / path).read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         errors.append(f"{path}: {exc}")
         return None
+    if not isinstance(data, dict):
+        errors.append(f"{path}: must be a JSON object")
+        return None
+    return data
 
 
 def check_source(catalog: Catalog, where: str, entry: dict[str, Any], errors: list[str]) -> None:
@@ -89,14 +93,14 @@ def collect(errors: list[str]) -> dict[str, list[tuple[str, Any]]]:
 
     for manifest in MANIFESTS:
         data = load(manifest.path, errors)
-        if isinstance(data, dict):
+        if data is not None:
             record(manifest.path, data, manifest.fields)
 
     for catalog in CATALOGS:
         data = load(catalog.path, errors)
         if data is None:
             continue
-        entries = data.get("plugins") if isinstance(data, dict) else None
+        entries = data.get("plugins")
         if not isinstance(entries, list) or not entries:
             errors.append(f"{catalog.path}: 'plugins' must be a non-empty array")
             continue

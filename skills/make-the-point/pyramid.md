@@ -54,19 +54,20 @@ Order: governing thought → key-line points in array order → deepen only as n
 
 ## Surface table
 
-Reply with one diagram, then the JSON. The diagram shows the governing thought and the key line only. Deeper children and support stay in the JSON.
+Reply with one diagram, then the JSON. The diagram shows the governing thought and the key line only. Deeper children and support stay in the JSON. The Markdown tree is the exception. It shows every node and support line.
 
 | Host | Format |
 | --- | --- |
 | Claude Code, a TUI, or another terminal | ANSI box drawing inside a fenced code block |
 | Claude Desktop | SVG cards. No dark page background. Purple `#5B2C6F` and teal `#0E6655` when the host allows color. |
 | Cursor, ChatGPT, and other Markdown chats | Mermaid flowchart inside a `mermaid` fence, with purple and teal node styles |
+| Claude Code desktop, GitHub, and other Markdown surfaces without Mermaid | Nested Markdown tree (`--format markdown`). The governing thought is a quoted heading. The full tree follows as nested bullets, with each support line under its claim. |
 | Optional rich SVG | SVG cards with no `#141414` page fill |
 | Never | Raw SVG in a terminal |
 
-Wrap a label to about 40 characters per line. Use at most 3 lines. Use an ellipsis only when the last line still overflows. A narrow card wraps to its own width. Copy words from the claim. SVG and ANSI fit cards to `--width` (720 px or 80 columns by default), so text keeps its full size at any claim count. Claims that do not fit one row wrap onto balanced rows.
+Wrap a label to about 40 characters per line. Use at most 3 lines. Use an ellipsis only when the last line still overflows. A narrow card wraps to its own width. Copy words from the claim. The Markdown tree prints each claim in full. SVG and ANSI fit cards to `--width` (720 px or 80 columns by default), so text keeps its full size at any claim count. Claims that do not fit one row wrap onto balanced rows.
 
-Run `scripts/render-pyramid.py` when a shell is available. The default format is svg. Pass `--format mermaid` or `--format ansi` for the other hosts. When no shell is available, emit the same shape from this table. The script is not required for Claude Desktop.
+Run `scripts/render-pyramid.py` when a shell is available. The default format is svg. Pass `--format mermaid`, `--format ansi`, or `--format markdown` for the other hosts. When no shell is available, emit the same shape from this table. The script is not required for Claude Desktop.
 
 Do not use D3, a widget, or a second skill.
 
@@ -78,7 +79,7 @@ Do not use D3, a widget, or a second skill.
 - Do not use overlapping sibling claims ("better UX" and "easier to use").
 - Do not attach evidence that supports a different claim than its parent.
 - Do not put full support figures into diagram labels.
-- Do not expand the diagram into a deep flowchart of every child node.
+- Do not expand the diagram into a deep flowchart of every child node. Only the Markdown tree shows full depth.
 - Do not paste raw SVG into a terminal.
 - Do not paint a full-bleed dark page background.
 - Do not use D3, a widget, or a second skill.

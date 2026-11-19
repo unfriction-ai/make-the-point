@@ -37,27 +37,33 @@ If the mode is unclear: **analyze** when source writing exists; **construct** wh
 3. Build `keyLine` as the top MECE supports. Recurse with vertical logic (child answers why/how for parent).
 4. Set `horizontalLogic` to `inductive` (grouped reasons of one kind) or `deductive` (chain).
 5. Optionally write `prose` **from the tree only**, answer-first, key-line order. No claim in prose that is not in the tree.
-6. Write one JSON object that matches the schema. Then run:
+6. Write one JSON object that matches the schema to a new file. Make the file with `mktemp` on every run, and never reuse a path from an earlier run:
 
 ```bash
-python3 ${CLAUDE_SKILL_DIR}/scripts/validate-tree.py path/to/tree.json
+mktemp -t make-the-point-XXXXXX
+```
+
+Write the JSON to the path it prints. Shell variables do not carry over between commands, so pass that literal path as `<tree>` below. Then validate it:
+
+```bash
+python3 ${CLAUDE_SKILL_DIR}/scripts/validate-tree.py <tree>
 ```
 
 From the repository root:
 
 ```bash
-python3 skills/make-the-point/scripts/validate-tree.py path/to/tree.json
+python3 skills/make-the-point/scripts/validate-tree.py <tree>
 ```
 
 7. Reply with the diagram. Add the JSON only with `--debug`. Run the script when a shell is available. When it is not, write the tree by hand to the shape below. The script is optional. Do not block a reply on Python.
 
 ```bash
-python3 ${CLAUDE_SKILL_DIR}/scripts/render-pyramid.py path/to/tree.json
+python3 ${CLAUDE_SKILL_DIR}/scripts/render-pyramid.py <tree>
 ```
 
 From the repository root, the script is `skills/make-the-point/scripts/render-pyramid.py`.
 
-Fix until validate exits 0. Do not treat a freeform essay as done.
+Validate and render only the file this run wrote. Fix until validate exits 0. Do not treat a freeform essay as done.
 
 ## Output contract
 

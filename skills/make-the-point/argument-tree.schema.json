@@ -31,10 +31,12 @@
         },
         "ref": {
           "type": "string",
+          "minLength": 1, "pattern": "\\S",
           "description": "URL, file path, or omitted when the text was inlined in the prompt."
         },
         "excerpt": {
           "type": "string",
+          "minLength": 1, "pattern": "\\S",
           "description": "Short note of what was ingested; not the full source."
         }
       }
@@ -44,19 +46,19 @@
       "additionalProperties": false,
       "required": ["situation", "complication", "question", "answer"],
       "properties": {
-        "situation": { "type": "string", "minLength": 1 },
-        "complication": { "type": "string", "minLength": 1 },
-        "question": { "type": "string", "minLength": 1 },
+        "situation": { "type": "string", "minLength": 1, "pattern": "\\S" },
+        "complication": { "type": "string", "minLength": 1, "pattern": "\\S" },
+        "question": { "type": "string", "minLength": 1, "pattern": "\\S" },
         "answer": {
           "type": "string",
-          "minLength": 1,
+          "minLength": 1, "pattern": "\\S",
           "description": "Must match governingThought."
         }
       }
     },
     "governingThought": {
       "type": "string",
-      "minLength": 1,
+      "minLength": 1, "pattern": "\\S",
       "description": "Single main point the audience must remember. Same string as scqa.answer."
     },
     "horizontalLogic": {
@@ -70,11 +72,12 @@
     },
     "prose": {
       "type": "string",
+      "minLength": 1, "pattern": "\\S",
       "description": "Pyramid-order prose generated from the tree, or a reconstruction that mirrors it. Never invent claims absent from the tree."
     },
     "notes": {
       "type": "array",
-      "items": { "type": "string" },
+      "items": { "type": "string", "minLength": 1, "pattern": "\\S" },
       "description": "Gaps, assumptions, or MECE risks. Not part of the argument."
     }
   },
@@ -93,7 +96,7 @@
           "minLength": 1,
           "pattern": "^[A-Za-z0-9._-]+$"
         },
-        "claim": { "type": "string", "minLength": 1 },
+        "claim": { "type": "string", "minLength": 1, "pattern": "\\S" },
         "role": {
           "enum": ["reason", "evidence", "example", "rebuttal"]
         },
@@ -104,7 +107,7 @@
         },
         "support": {
           "type": "array",
-          "items": { "type": "string", "minLength": 1 },
+          "items": { "type": "string", "minLength": 1, "pattern": "\\S" },
           "description": "Facts or observations from the source that back this claim. No links or citations."
         }
       }

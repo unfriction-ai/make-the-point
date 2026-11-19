@@ -30,9 +30,12 @@ The release workflow enforces the contract. It runs the self-test and `scripts/c
 
    ```bash
    git fetch origin
-   git tag vX.Y.Z <merge-commit-sha>
+   sha=$(gh pr view <pr-number> --json mergeCommit -q .mergeCommit.oid)
+   git tag -m "make-the-point vX.Y.Z" vX.Y.Z "$sha"
    git push origin vX.Y.Z
    ```
+
+   The `-m` message makes an annotated tag. Git needs one when `tag.gpgsign` is on.
 
 5. Watch the `release` workflow. It creates the GitHub release with the zip, the `.sha256` file and the notes.
 

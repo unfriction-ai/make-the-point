@@ -123,7 +123,7 @@ def check(tag: str | None) -> list[str]:
             listing = "\n".join(f"    {where}: {value!r}" for where, value in values)
             errors.append(f"'{field}' disagrees across manifests:\n{listing}")
 
-    versions = {v for _, v in seen["version"]}
+    versions = list({json.dumps(v, sort_keys=True): v for _, v in seen["version"]}.values())
     for version in versions:
         if not isinstance(version, str) or not SEMVER.match(version):
             errors.append(f"version {version!r} is not valid semver")

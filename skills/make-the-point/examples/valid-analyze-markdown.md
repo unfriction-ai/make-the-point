@@ -1,6 +1,6 @@
 # Markdown example
 
-Nested Markdown tree for every host that is not a terminal. It uses no raw HTML. The governing thought is a quoted heading. The full tree follows as nested bullets, with each support line under its claim.
+Nested Markdown tree for every host. It uses no raw HTML. The governing thought is a quoted heading. The full tree follows as nested bullets, with each support line under its claim.
 
 ## Pyramid diagram
 

@@ -7,9 +7,8 @@ Usage:
   python3 scripts/validate-tree.py --fixtures
 
 Normal mode exits 0 only when every file passes. --self-test exits 0 when packaged
-fixtures match expected pass/fail, the ansi and markdown examples match the
-renderer, the deep fixture passes the markdown --check, a run without --format
-prints markdown, and ansi and markdown renders of 1 to 12 key-line claims pass
+fixtures match expected pass/fail, the example matches the renderer, the wide
+and deep fixtures pass --check, and renders of 1 to 12 key-line claims pass
 --check.
 """
 
@@ -232,19 +231,13 @@ def run_self_test() -> int:
     render = Path(__file__).resolve().parent / "render-pyramid.py"
     valid = fixture_dir / "valid-analyze.json"
     fixture_json = valid.read_text(encoding="utf-8").strip()
-    paints = (
-        ("valid-analyze-ansi.md", "ansi"),
-        ("valid-analyze-markdown.md", "markdown"),
-    )
-    for name, fmt in paints:
-        failed += check_example(skill_dir / "examples" / name, valid, render, fmt, fixture_json)
+    failed += check_example(skill_dir / "examples" / "valid-analyze-markdown.md", valid, render, fixture_json)
 
     wide = fixture_dir / "valid-wide-keyline.json"
     deep = fixture_dir / "valid-deep.json"
-    targets = [(wide, fmt) for fmt in ("ansi", "markdown")] + [(deep, "markdown")]
-    for tree, fmt in targets:
+    for tree in (wide, deep):
         check = subprocess.run(
-            [sys.executable, str(render), str(tree), "--check", "--format", fmt],
+            [sys.executable, str(render), str(tree), "--check"],
             check=False,
             capture_output=True,
             text=True,
@@ -254,24 +247,8 @@ def run_self_test() -> int:
         if check.returncode != 0:
             failed += 1
 
-    failed += check_default_format(render, valid)
     failed += check_key_line_counts(render, wide)
     return 1 if failed else 0
-
-
-def check_default_format(render: Path, tree: Path) -> int:
-    runs = [
-        subprocess.run([sys.executable, str(render), str(tree), *extra], check=False, capture_output=True, text=True)
-        for extra in ([], ["--format", "markdown"])
-    ]
-    if any(run.returncode for run in runs) or runs[0].stdout != runs[1].stdout:
-        print(f"FAIL           default format is not markdown for {tree}")
-        return 1
-    print(f"OK             default format is markdown")
-    return 0
-
-
-WIDTH_CASES = (("ansi", None), ("ansi", 60), ("markdown", None))
 
 
 def check_key_line_counts(render: Path, wide: Path, counts: range = range(1, 13)) -> int:
@@ -283,18 +260,16 @@ def check_key_line_counts(render: Path, wide: Path, counts: range = range(1, 13)
             key_line = [dict(claims[i % len(claims)], id=f"K{i + 1}") for i in range(n)]
             tree = Path(tmp) / f"n{n}.json"
             tree.write_text(json.dumps(dict(base, keyLine=key_line)), encoding="utf-8")
-            for fmt, width in WIDTH_CASES:
-                cmd = [sys.executable, str(render), str(tree), "--check", "--format", fmt]
-                if width is not None:
-                    cmd += ["--width", str(width)]
-                check = subprocess.run(cmd, check=False, capture_output=True, text=True)
-                if check.returncode != 0:
-                    failed += 1
-                    print(f"FAIL n={n} {fmt} width={width or 'default'}")
-                    sys.stdout.write(check.stdout)
-                    sys.stderr.write(check.stderr)
-    cases = len(counts) * len(WIDTH_CASES)
-    print(f"{'OK' if not failed else 'FAIL':14} key-line counts {counts.start}-{counts.stop - 1}: {cases - failed}/{cases} ansi and markdown renders pass --check")
+            check = subprocess.run(
+                [sys.executable, str(render), str(tree), "--check"], check=False, capture_output=True, text=True
+            )
+            if check.returncode != 0:
+                failed += 1
+                print(f"FAIL n={n}")
+                sys.stdout.write(check.stdout)
+                sys.stderr.write(check.stderr)
+    cases = len(counts)
+    print(f"{'OK' if not failed else 'FAIL':14} key-line counts {counts.start}-{counts.stop - 1}: {cases - failed}/{cases} renders pass --check")
     return failed
 
 
@@ -311,18 +286,12 @@ def fenced_json(text: str) -> str | None:
     return match.group(1) if match else None
 
 
-def paint_errors(fmt: str, text: str, diagram: str) -> list[str]:
+def diagram_errors(diagram: str) -> list[str]:
     errors: list[str] = []
-    if fmt == "ansi":
-        if not diagram.startswith("```") or "┌" not in diagram or "▼" not in diagram:
-            errors.append("diagram must be box drawing inside a code fence")
-    elif fmt == "markdown":
-        if not diagram.startswith("> ### ") or "↳ *" not in diagram:
-            errors.append("diagram must be a quoted heading over a nested bullet tree")
-        if "```" in diagram:
-            errors.append("Markdown example diagram must not include fences")
-    else:
-        errors.append(f"unknown format {fmt}")
+    if not diagram.startswith("> ### ") or "↳ *" not in diagram:
+        errors.append("diagram must be a quoted heading over a nested bullet tree")
+    if "```" in diagram:
+        errors.append("example diagram must not include fences")
     return errors
 
 
@@ -330,11 +299,10 @@ def check_example(
     example: Path,
     valid: Path,
     render: Path,
-    fmt: str,
     fixture_json: str,
 ) -> int:
     check = subprocess.run(
-        [sys.executable, str(render), str(valid), "--check", "--format", fmt],
+        [sys.executable, str(render), str(valid), "--check"],
         check=False,
         capture_output=True,
         text=True,
@@ -345,13 +313,13 @@ def check_example(
         return 1
 
     drawn = subprocess.run(
-        [sys.executable, str(render), str(valid), "--format", fmt],
+        [sys.executable, str(render), str(valid)],
         check=False,
         capture_output=True,
         text=True,
     )
     if drawn.returncode != 0:
-        print(f"FAIL renderer {fmt}")
+        print("FAIL renderer")
         sys.stdout.write(drawn.stdout)
         sys.stderr.write(drawn.stderr)
         return 1
@@ -372,7 +340,7 @@ def check_example(
     elif payload.strip() != fixture_json:
         errors.append("JSON does not match the valid fixture")
     if diagram is not None:
-        errors.extend(paint_errors(fmt, text, diagram))
+        errors.extend(diagram_errors(diagram))
     if errors:
         print(f"FAIL {example}")
         for err in errors:
@@ -401,7 +369,7 @@ def main(argv: list[str]) -> int:
     parser.add_argument(
         "--self-test",
         action="store_true",
-        help="Check fixtures and ansi and markdown examples",
+        help="Check fixtures, the example, and --check across 1 to 12 key-line claims",
     )
     args = parser.parse_args(argv)
 

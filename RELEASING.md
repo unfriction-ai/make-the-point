@@ -26,11 +26,11 @@ The release workflow enforces the contract. It runs the self-test and `scripts/c
    ```
 
 3. Open a pull request and merge it to `main`.
-4. Tag the merge commit and push the tag.
+4. Tag the merge commit by its SHA and push the tag. Tag the SHA, not the tip of `main`, because another merge can land first.
 
    ```bash
-   git checkout main && git pull
-   git tag vX.Y.Z
+   git fetch origin
+   git tag vX.Y.Z <merge-commit-sha>
    git push origin vX.Y.Z
    ```
 

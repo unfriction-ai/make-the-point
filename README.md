@@ -49,7 +49,7 @@ From the repository root, run this command.
 python3 skills/make-the-point/scripts/validate-tree.py --self-test
 ```
 
-Exit code 0 means the packaged fixtures match the expected pass and the expected failure.
+Exit code 0 means the packaged fixtures match the expected pass and the expected failure. It also means the example and the hand-writing template in `SKILL.md` match the renderer output.
 
 ## Releases
 

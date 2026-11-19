@@ -112,4 +112,4 @@ From the repository root:
 python3 skills/make-the-point/scripts/validate-tree.py --self-test
 ```
 
-Must exit 0. Packaged fixtures encode one valid tree, one seven-claim wide tree, one five-level deep tree, and one deliberate failure. The example must match the render of the valid tree.
+Must exit 0. Packaged fixtures encode one valid tree, one seven-claim wide tree, one five-level deep tree, and one deliberate failure. The example and the hand-writing template above must match the render of the valid tree.

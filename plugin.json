@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "make-the-point",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Understand, construct, and communicate the central argument via the Minto Pyramid Principle. Canonical output is a testable ArgumentTree.",
   "author": {
     "name": "Unfriction"

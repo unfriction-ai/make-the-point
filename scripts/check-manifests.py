@@ -128,14 +128,13 @@ def collect(errors: list[str]) -> dict[str, list[tuple[str, Any]]]:
 
     for text in TEXT_SOURCES:
         try:
-            match = text.pattern.search((ROOT / text.path).read_text(encoding="utf-8"))
+            versions = text.pattern.findall((ROOT / text.path).read_text(encoding="utf-8"))
         except OSError as exc:
             errors.append(f"{text.path}: {exc}")
             continue
-        if match is None:
-            errors.append(f"{text.path}: no version line matching {text.pattern.pattern!r}")
-        else:
-            seen["version"].append((text.path, match.group(1)))
+        if not versions:
+            errors.append(f"{text.path}: no version line matching /{text.pattern.pattern}/")
+        seen["version"].extend((text.path, version) for version in versions)
     return seen
 
 
@@ -146,7 +145,7 @@ def check(tag: str | None) -> list[str]:
     for field, values in seen.items():
         if len({json.dumps(v, sort_keys=True) for _, v in values}) > 1:
             listing = "\n".join(f"    {where}: {value!r}" for where, value in values)
-            errors.append(f"'{field}' disagrees across manifests:\n{listing}")
+            errors.append(f"'{field}' disagrees across files:\n{listing}")
 
     versions = list({json.dumps(v, sort_keys=True): v for _, v in seen["version"]}.values())
     for version in versions:

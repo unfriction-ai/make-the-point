@@ -1,0 +1,20 @@
+{
+  "name": "make-the-point",
+  "interface": {
+    "displayName": "Make the Point"
+  },
+  "plugins": [
+    {
+      "name": "make-the-point",
+      "source": {
+        "source": "local",
+        "path": "./"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

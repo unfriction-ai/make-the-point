@@ -18,6 +18,15 @@ claude plugin install make-the-point@make-the-point
 
 Confirm with `claude plugin list`. Skills appear as `/make-the-point:make-the-point`.
 
+## Install from GitHub (Codex)
+
+```bash
+codex plugin marketplace add unfriction-ai/make-the-point
+codex plugin add make-the-point@make-the-point
+```
+
+Confirm with `codex plugin list`. The catalog is `.agents/plugins/marketplace.json`.
+
 ## Local development (Claude Code)
 
 ```bash

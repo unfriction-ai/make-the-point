@@ -1,16 +1,18 @@
 #!/usr/bin/env python3
-"""Render an ArgumentTree pyramid as svg, mermaid, or ansi.
+"""Render an ArgumentTree pyramid as svg, mermaid, ansi, or markdown.
 
-The diagram shows governingThought and keyLine only. Deeper children and
-support figures stay in the JSON. svg is the default and has no page fill.
+svg, mermaid, and ansi show governingThought and keyLine only. Deeper children
+and support figures stay in the JSON. markdown is the exception. It renders the
+full tree as nested bullets with each support line under its claim.
+svg is the default and has no page fill.
 svg and ansi lay out for --width: container pixels for svg (default 720) and
 terminal columns for ansi (default 80). Key-line cards that do not fit one row
-wrap onto balanced rows. mermaid ignores --width.
+wrap onto balanced rows. mermaid and markdown ignore --width.
 
 Usage:
-  python3 scripts/render-pyramid.py <tree.json> [--format svg|mermaid|ansi] [--width N]
-  python3 scripts/render-pyramid.py <tree.json> --check [--format svg|mermaid|ansi] [--width N]
-  python3 scripts/render-pyramid.py <tree.json> --write out.txt [--format svg|mermaid|ansi] [--width N]
+  python3 scripts/render-pyramid.py <tree.json> [--format svg|mermaid|ansi|markdown] [--width N]
+  python3 scripts/render-pyramid.py <tree.json> --check [--format svg|mermaid|ansi|markdown] [--width N]
+  python3 scripts/render-pyramid.py <tree.json> --write out.txt [--format svg|mermaid|ansi|markdown] [--width N]
 """
 
 from __future__ import annotations
@@ -416,6 +418,39 @@ def render_ansi(data: dict[str, Any], width: int) -> str:
     return "```\n" + "\n".join(rows) + "\n```\n"
 
 
+def md_escape(text: str) -> str:
+    """Backslash-escape inline markdown so the text renders verbatim."""
+    text = text.replace("\\", "\\\\")
+    text = re.sub(r"([`*_\[\]<>|$~])", r"\\\1", text)
+    text = re.sub(r"&(#?\w+;)", r"\\&\1", text)
+    return re.sub(r":([a-z0-9_+-]+):", r"\\:\1:", text)
+
+
+def md_claim(node: dict[str, Any], depth: int) -> str:
+    claim = md_escape(node["claim"])
+    role = node.get("role", "reason")
+    return (f"**{claim}**" if depth == 0 else claim) + ("" if role == "reason" else f" _{role}_")
+
+
+def render_markdown(data: dict[str, Any]) -> str:
+    out = [f"> ### {md_escape(data['governingThought'])}", ""]
+
+    def walk(node: dict[str, Any], depth: int, marker: str) -> None:
+        indent = "  " * depth
+        lines = [f"{indent}{marker} `{node['id']}` {md_claim(node, depth)}"]
+        lines += [f"{indent}  ↳ *{md_escape(s)}*" for s in node.get("support") or []]
+        # A trailing backslash is a hard break, so support stays inside its claim's item.
+        out.append("\\\n".join(lines))
+        for child in node.get("children") or []:
+            walk(child, depth + 1, "-")
+
+    # Alternating markers start a new list per key line, which spaces the groups apart.
+    grouped = any(node.get("children") for node in data["keyLine"])
+    for i, node in enumerate(data["keyLine"]):
+        walk(node, 0, "-*"[i % 2] if grouped else "-")
+    return "\n".join(out) + "\n"
+
+
 def check_leaks(data: dict[str, Any], diagram: str) -> list[str]:
     errors: list[str] = []
     supports: list[str] = []
@@ -458,7 +493,7 @@ def mermaid_label_entries(data: dict[str, Any]) -> list[tuple[str, list[str]]]:
 
 
 def check_svg(data: dict[str, Any], diagram: str, width: int) -> list[str]:
-    errors: list[str] = []
+    errors = check_leaks(data, diagram)
     if "<svg" not in diagram:
         errors.append("diagram must be an SVG card pyramid")
     if PURPLE not in diagram or TEAL not in diagram:
@@ -506,7 +541,7 @@ def check_svg_geometry(diagram: str, m: Metrics) -> list[str]:
 
 
 def check_mermaid(data: dict[str, Any], diagram: str) -> list[str]:
-    errors: list[str] = []
+    errors = check_leaks(data, diagram)
     if "```mermaid" not in diagram or "flowchart TB" not in diagram:
         errors.append("diagram must be a fenced Mermaid flowchart")
     if "<svg" in diagram:
@@ -544,7 +579,7 @@ def check_mermaid(data: dict[str, Any], diagram: str) -> list[str]:
 
 
 def check_ansi(data: dict[str, Any], diagram: str, width: int) -> list[str]:
-    errors: list[str] = []
+    errors = check_leaks(data, diagram)
     if not diagram.startswith("```\n") or "┌" not in diagram or ARROW not in diagram:
         errors.append("diagram must be box-drawing inside a fenced code block")
     if "<svg" in diagram or "```mermaid" in diagram:
@@ -571,23 +606,52 @@ def check_ansi(data: dict[str, Any], diagram: str, width: int) -> list[str]:
     return errors
 
 
+def check_markdown(data: dict[str, Any], diagram: str) -> list[str]:
+    errors: list[str] = []
+    if not diagram.startswith(f"> ### {md_escape(data['governingThought'])}\n\n"):
+        errors.append("diagram must open with the governing thought as a quoted heading")
+    if re.search(r"(?<!\\)<[A-Za-z/!]", diagram):
+        errors.append("Markdown paint must not include raw HTML tags")
+    if "```" in diagram:
+        errors.append("Markdown paint must not include code fences")
+    supports = 0
+
+    def walk(node: dict[str, Any], depth: int) -> None:
+        nonlocal supports
+        if f"`{node['id']}` {md_claim(node, depth)}" not in diagram:
+            errors.append(f"{node['id']}: claim missing from the tree")
+        for item in node.get("support") or []:
+            supports += 1
+            if f"↳ *{md_escape(item)}*" not in diagram:
+                errors.append(f"{node['id']}: support missing from the tree: {item!r}")
+        for child in node.get("children") or []:
+            walk(child, depth + 1)
+
+    for node in data["keyLine"]:
+        walk(node, 0)
+    lines = diagram.splitlines()
+    arrows = [i for i, line in enumerate(lines) if line.lstrip().startswith("↳ ")]
+    if len(arrows) != supports:
+        errors.append(f"tree has {len(arrows)} support lines, want {supports}")
+    for i in arrows:
+        if not lines[i - 1].endswith("\\"):
+            errors.append(f"line {i + 1}: support must follow a hard break")
+    return errors
+
+
 RENDERERS: dict[str, Callable[[dict[str, Any], int], str]] = {
     "svg": render_svg,
     "mermaid": lambda data, _width: render_mermaid(data),
     "ansi": render_ansi,
+    "markdown": lambda data, _width: render_markdown(data),
 }
 CHECKERS: dict[str, Callable[[dict[str, Any], str, int], list[str]]] = {
     "svg": check_svg,
     "mermaid": lambda data, diagram, _width: check_mermaid(data, diagram),
     "ansi": check_ansi,
+    "markdown": lambda data, diagram, _width: check_markdown(data, diagram),
 }
 FORMATS = tuple(RENDERERS)
-
-
-def check_render(data: dict[str, Any], diagram: str, fmt: str, width: int) -> list[str]:
-    errors = check_leaks(data, diagram)
-    errors.extend(CHECKERS[fmt](data, diagram, width))
-    return errors
 
 
 def main(argv: list[str]) -> int:
@@ -597,17 +661,17 @@ def main(argv: list[str]) -> int:
         "--format",
         choices=FORMATS,
         default="svg",
-        help="svg (default), mermaid, or ansi",
+        help="svg (default), mermaid, ansi, or markdown",
     )
     parser.add_argument(
         "--width",
         type=int,
-        help="Target width: svg container pixels (default 720), ansi columns (default 80). mermaid ignores it",
+        help="Target width: svg container pixels (default 720), ansi columns (default 80). mermaid and markdown ignore it",
     )
     parser.add_argument(
         "--check",
         action="store_true",
-        help="Check labels, fit to --width, colors or fences, shallow tree, and no support leak",
+        help="Check the chosen format: labels, fit, colors or fences, and depth. Only markdown shows the full tree",
     )
     parser.add_argument(
         "--write",
@@ -628,7 +692,7 @@ def main(argv: list[str]) -> int:
         args.write.write_text(diagram, encoding="utf-8")
 
     if args.check:
-        errors = check_render(data, diagram, args.format, width)
+        errors = CHECKERS[args.format](data, diagram, width)
         if errors:
             print(f"FAIL {args.tree} {args.format}")
             for err in errors:

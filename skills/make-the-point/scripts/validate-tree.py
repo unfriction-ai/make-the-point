@@ -93,7 +93,7 @@ def walk_node(
                 if not isinstance(item, str) or not item.strip():
                     fail(errors, f"{path}.support[{i}]: must be a non-empty string")
 
-    if children is None and support is None:
+    if children is None and not support:
         fail(errors, f"{path}: leaf needs 'support' or non-leaf needs 'children'")
 
 
@@ -208,6 +208,7 @@ def run_self_test() -> int:
         (fixture_dir / "valid-wide-keyline.json", True),
         (fixture_dir / "valid-deep.json", True),
         (fixture_dir / "invalid-missing-support.json", False),
+        (fixture_dir / "invalid-empty-support.json", False),
     ]
     failed = 0
     for path, should_pass in cases:

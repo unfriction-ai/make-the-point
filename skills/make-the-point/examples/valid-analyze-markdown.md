@@ -14,7 +14,9 @@ Nested Markdown tree for every host. It uses no raw HTML. The governing thought 
 - `K3` **Decision rights remove escalation latency.**\
   ↳ *Escalations currently take a median of five days.*
 
-## ArgumentTree JSON
+## ArgumentTree JSON (--debug only)
+
+The reply adds this fence only when the skill runs with `--debug`.
 
 ```json
 {

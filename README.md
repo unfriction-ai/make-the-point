@@ -58,7 +58,7 @@ Each host also reports what it has installed:
 - ChatGPT and Claude Desktop: the version shown in the plugin or skill settings.
 - Cursor with a symlinked checkout: `version` in `.cursor-plugin/plugin.json`.
 
-A session keeps the version it loaded when it started. After an update, run `/reload-plugins` in Claude Code or start a new session, then ask `--version` again. If the two answers differ, the session is still on the old copy.
+A session keeps the version it loaded when it started. After an update, run `/reload-plugins` in Claude Code or start a new session, then ask `--version` again. If `--version` names a different version than your host lists as installed, the session is still on the old copy. Copies older than 0.3.1 have no version line, so their `--version` reply is only a guess. Reload or reinstall them.
 
 ## Run the self-test
 

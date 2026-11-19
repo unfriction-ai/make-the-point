@@ -7,9 +7,9 @@ Usage:
   python3 scripts/validate-tree.py --fixtures
 
 Normal mode exits 0 only when every file passes. --self-test exits 0 when packaged
-fixtures match expected pass/fail, the svg, mermaid, and ansi examples match
-the renderer, and svg and ansi renders of 1 to 12 key-line claims pass --check
-at the default and a narrow width.
+fixtures match expected pass/fail, the example matches the renderer, the wide
+and deep fixtures pass --check, and renders of 1 to 12 key-line claims pass
+--check.
 """
 
 from __future__ import annotations
@@ -206,6 +206,7 @@ def run_self_test() -> int:
     cases = [
         (fixture_dir / "valid-analyze.json", True),
         (fixture_dir / "valid-wide-keyline.json", True),
+        (fixture_dir / "valid-deep.json", True),
         (fixture_dir / "invalid-missing-support.json", False),
     ]
     failed = 0
@@ -230,18 +231,13 @@ def run_self_test() -> int:
     render = Path(__file__).resolve().parent / "render-pyramid.py"
     valid = fixture_dir / "valid-analyze.json"
     fixture_json = valid.read_text(encoding="utf-8").strip()
-    paints = (
-        ("valid-analyze.md", "svg"),
-        ("valid-analyze-mermaid.md", "mermaid"),
-        ("valid-analyze-ansi.md", "ansi"),
-    )
-    for name, fmt in paints:
-        failed += check_example(skill_dir / "examples" / name, valid, render, fmt, fixture_json)
+    failed += check_example(skill_dir / "examples" / "valid-analyze-markdown.md", valid, render, fixture_json)
 
     wide = fixture_dir / "valid-wide-keyline.json"
-    for fmt in ("svg", "mermaid", "ansi"):
+    deep = fixture_dir / "valid-deep.json"
+    for tree in (wide, deep):
         check = subprocess.run(
-            [sys.executable, str(render), str(wide), "--check", "--format", fmt],
+            [sys.executable, str(render), str(tree), "--check"],
             check=False,
             capture_output=True,
             text=True,
@@ -255,9 +251,6 @@ def run_self_test() -> int:
     return 1 if failed else 0
 
 
-WIDTH_CASES = (("svg", None), ("ansi", None), ("svg", 480), ("ansi", 60))
-
-
 def check_key_line_counts(render: Path, wide: Path, counts: range = range(1, 13)) -> int:
     base = json.loads(wide.read_text(encoding="utf-8"))
     claims = base["keyLine"]
@@ -267,18 +260,16 @@ def check_key_line_counts(render: Path, wide: Path, counts: range = range(1, 13)
             key_line = [dict(claims[i % len(claims)], id=f"K{i + 1}") for i in range(n)]
             tree = Path(tmp) / f"n{n}.json"
             tree.write_text(json.dumps(dict(base, keyLine=key_line)), encoding="utf-8")
-            for fmt, width in WIDTH_CASES:
-                cmd = [sys.executable, str(render), str(tree), "--check", "--format", fmt]
-                if width is not None:
-                    cmd += ["--width", str(width)]
-                check = subprocess.run(cmd, check=False, capture_output=True, text=True)
-                if check.returncode != 0:
-                    failed += 1
-                    print(f"FAIL n={n} {fmt} width={width or 'default'}")
-                    sys.stdout.write(check.stdout)
-                    sys.stderr.write(check.stderr)
-    cases = len(counts) * len(WIDTH_CASES)
-    print(f"{'OK' if not failed else 'FAIL':14} key-line counts {counts.start}-{counts.stop - 1}: {cases - failed}/{cases} svg and ansi renders fit their width")
+            check = subprocess.run(
+                [sys.executable, str(render), str(tree), "--check"], check=False, capture_output=True, text=True
+            )
+            if check.returncode != 0:
+                failed += 1
+                print(f"FAIL n={n}")
+                sys.stdout.write(check.stdout)
+                sys.stderr.write(check.stderr)
+    cases = len(counts)
+    print(f"{'OK' if not failed else 'FAIL':14} key-line counts {counts.start}-{counts.stop - 1}: {cases - failed}/{cases} renders pass --check")
     return failed
 
 
@@ -295,27 +286,12 @@ def fenced_json(text: str) -> str | None:
     return match.group(1) if match else None
 
 
-def paint_errors(fmt: str, text: str, diagram: str) -> list[str]:
+def diagram_errors(diagram: str) -> list[str]:
     errors: list[str] = []
-    if fmt == "svg":
-        if "<svg" not in diagram:
-            errors.append("diagram must be SVG")
-        if "#141414" in text.lower():
-            errors.append("SVG example must not use a full-bleed page fill")
-        if "#5B2C6F" not in diagram or "#0E6655" not in diagram:
-            errors.append("SVG example must use purple and teal card fills")
-    elif fmt == "mermaid":
-        if "```mermaid" not in diagram or "flowchart TB" not in diagram:
-            errors.append("diagram must be a fenced Mermaid flowchart")
-        if "<svg" in text:
-            errors.append("Mermaid example must not include raw SVG")
-    elif fmt == "ansi":
-        if not diagram.startswith("```") or "┌" not in diagram or "▼" not in diagram:
-            errors.append("diagram must be box drawing inside a code fence")
-        if "<svg" in text or "```mermaid" in text:
-            errors.append("ANSI example must not include SVG or Mermaid")
-    else:
-        errors.append(f"unknown format {fmt}")
+    if not diagram.startswith("> ### ") or "↳ *" not in diagram:
+        errors.append("diagram must be a quoted heading over a nested bullet tree")
+    if "```" in diagram:
+        errors.append("example diagram must not include fences")
     return errors
 
 
@@ -323,11 +299,10 @@ def check_example(
     example: Path,
     valid: Path,
     render: Path,
-    fmt: str,
     fixture_json: str,
 ) -> int:
     check = subprocess.run(
-        [sys.executable, str(render), str(valid), "--check", "--format", fmt],
+        [sys.executable, str(render), str(valid), "--check"],
         check=False,
         capture_output=True,
         text=True,
@@ -338,13 +313,13 @@ def check_example(
         return 1
 
     drawn = subprocess.run(
-        [sys.executable, str(render), str(valid), "--format", fmt],
+        [sys.executable, str(render), str(valid)],
         check=False,
         capture_output=True,
         text=True,
     )
     if drawn.returncode != 0:
-        print(f"FAIL renderer {fmt}")
+        print("FAIL renderer")
         sys.stdout.write(drawn.stdout)
         sys.stderr.write(drawn.stderr)
         return 1
@@ -365,7 +340,7 @@ def check_example(
     elif payload.strip() != fixture_json:
         errors.append("JSON does not match the valid fixture")
     if diagram is not None:
-        errors.extend(paint_errors(fmt, text, diagram))
+        errors.extend(diagram_errors(diagram))
     if errors:
         print(f"FAIL {example}")
         for err in errors:
@@ -394,7 +369,7 @@ def main(argv: list[str]) -> int:
     parser.add_argument(
         "--self-test",
         action="store_true",
-        help="Check fixtures and svg, mermaid, and ansi examples",
+        help="Check fixtures, the example, and --check across 1 to 12 key-line claims",
     )
     args = parser.parse_args(argv)
 

@@ -1,23 +1,18 @@
-# Mermaid example
+# Markdown example
 
-Mermaid flowchart for Markdown chats. The governing thought is purple. The key line is teal.
+Nested Markdown tree for every host. It uses no raw HTML. The governing thought is a quoted heading. The full tree follows as nested bullets, with each support line under its claim.
 
 ## Pyramid diagram
 
-```mermaid
-flowchart TB
-  GT["Appoint one backlog owner with explicit<br/>decision rights."]
-  K1["Split ownership creates priority thrash."]
-  K2["A single owner can sequence work against<br/>one outcome."]
-  K3["Decision rights remove escalation<br/>latency."]
-  GT --> K1
-  GT --> K2
-  GT --> K3
-  style GT fill:#5B2C6F,stroke:#7D3C98,color:#fff
-  style K1 fill:#0E6655,stroke:#148F77,color:#fff
-  style K2 fill:#0E6655,stroke:#148F77,color:#fff
-  style K3 fill:#0E6655,stroke:#148F77,color:#fff
-```
+> ### Appoint one backlog owner with explicit decision rights.
+
+- `K1` **Split ownership creates priority thrash.**
+  - `K1.1` Each team optimizes local goals.\
+    ↳ *Sprint goals diverged three times last quarter.*
+* `K2` **A single owner can sequence work against one outcome.**\
+  ↳ *Peer products that use one owner ship on a shared roadmap.*
+- `K3` **Decision rights remove escalation latency.**\
+  ↳ *Escalations currently take a median of five days.*
 
 ## ArgumentTree JSON
 

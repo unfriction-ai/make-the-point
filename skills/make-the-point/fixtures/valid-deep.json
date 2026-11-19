@@ -1,0 +1,112 @@
+{
+  "version": 1,
+  "mode": "analyze",
+  "source": {
+    "kind": "text",
+    "excerpt": "RFC: migrate session storage from Redis to Postgres"
+  },
+  "scqa": {
+    "situation": "Sessions live in a dedicated Redis cluster.",
+    "complication": "The cluster caused two incidents and costs more than the database it fronts.",
+    "question": "Should we move sessions into Postgres?",
+    "answer": "Move session storage to Postgres in Q1, behind a dual-write flag."
+  },
+  "horizontalLogic": "deductive",
+  "keyLine": [
+    {
+      "id": "K1",
+      "claim": "Redis is now the riskiest part of the login path.",
+      "role": "reason",
+      "children": [
+        {
+          "id": "K1.1",
+          "claim": "Two of the last three login incidents started in Redis.",
+          "role": "reason",
+          "children": [
+            {
+              "id": "K1.1.1",
+              "claim": "Failover dropped every session in the March incident.",
+              "role": "reason",
+              "support": [
+                "Postmortem PM-212: 41 minutes of forced logouts."
+              ]
+            },
+            {
+              "id": "K1.1.2",
+              "claim": "Memory eviction logged users out during the June peak.",
+              "role": "reason",
+              "children": [
+                {
+                  "id": "K1.1.2.1",
+                  "claim": "The maxmemory policy evicts live sessions first.",
+                  "role": "reason",
+                  "support": [
+                    "allkeys-lru was set in 2021 and never revisited."
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "K1.2",
+          "claim": "Nobody on the team owns Redis operations.",
+          "role": "reason",
+          "support": [
+            "The last Redis owner left in 2024; the runbook is stale."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "K2",
+      "claim": "Postgres can carry session load with headroom.",
+      "role": "reason",
+      "children": [
+        {
+          "id": "K2.1",
+          "claim": "Peak session reads fit the current primary.",
+          "role": "reason",
+          "support": [
+            "Load test: 9k reads/s at p99 4 ms on the existing instance."
+          ]
+        },
+        {
+          "id": "K2.2",
+          "claim": "Writes stay small because sessions change rarely.",
+          "role": "reason",
+          "support": [
+            "Only 3% of requests mutate a session."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "K3",
+      "claim": "So moving sessions to Postgres removes the risk at lower cost.",
+      "role": "reason",
+      "children": [
+        {
+          "id": "K3.1",
+          "claim": "One fewer datastore saves about $14k a year.",
+          "role": "reason",
+          "support": [
+            "Current Redis cluster invoice, averaged over 12 months."
+          ]
+        },
+        {
+          "id": "K3.2",
+          "claim": "A dual-write flag makes rollback a config change.",
+          "role": "reason",
+          "support": [
+            "The flag pattern is already used for the billing migration."
+          ]
+        }
+      ]
+    }
+  ],
+  "notes": [
+    "The RFC does not estimate migration engineering effort."
+  ],
+  "governingThought": "Move session storage to Postgres in Q1, behind a dual-write flag."
+}

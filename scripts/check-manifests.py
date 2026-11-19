@@ -4,7 +4,8 @@
 Usage:
   python3 scripts/check-manifests.py [--tag vX.Y.Z]
 
-Exits 0 when all versions are equal and valid semver, shared fields agree, every
+Exits 0 when all versions are equal and valid semver (the SKILL.md version line
+and the example's plugin line included), shared fields agree, every
 catalog entry points at a directory that holds the manifest its host reads, and
 the optional tag equals "v" + version.
 """
@@ -43,6 +44,19 @@ MANIFESTS = (
     Manifest("plugin.json", ("name", "version", "description", "repository")),
     Manifest(".claude-plugin/plugin.json", ("name", "version", "description", "repository")),
     Manifest(".cursor-plugin/plugin.json", ("name", "version", "description", "repository")),
+)
+
+class TextSource(NamedTuple):
+    path: str
+    pattern: re.Pattern[str]
+
+
+TEXT_SOURCES = (
+    TextSource("skills/make-the-point/SKILL.md", re.compile(r"^This is make-the-point (\S+)\.$", re.MULTILINE)),
+    TextSource(
+        "skills/make-the-point/examples/valid-analyze-markdown.md",
+        re.compile(r"^Plugin: make-the-point (\S+)$", re.MULTILINE),
+    ),
 )
 
 CATALOGS = (
@@ -111,6 +125,17 @@ def collect(errors: list[str]) -> dict[str, list[tuple[str, Any]]]:
                 continue
             record(where, entry, catalog.fields)
             check_source(catalog, where, entry, errors)
+
+    for text in TEXT_SOURCES:
+        try:
+            match = text.pattern.search((ROOT / text.path).read_text(encoding="utf-8"))
+        except OSError as exc:
+            errors.append(f"{text.path}: {exc}")
+            continue
+        if match is None:
+            errors.append(f"{text.path}: no version line matching {text.pattern.pattern!r}")
+        else:
+            seen["version"].append((text.path, match.group(1)))
     return seen
 
 
@@ -149,7 +174,7 @@ def main(argv: list[str]) -> int:
             print(f"FAIL {err}")
         return 1
     version = json.loads((ROOT / MANIFESTS[0].path).read_text(encoding="utf-8"))["version"]
-    names = ", ".join(m.path for m in MANIFESTS + CATALOGS)
+    names = ", ".join(m.path for m in MANIFESTS + CATALOGS + TEXT_SOURCES)
     suffix = f", tag {args.tag}" if args.tag else ""
     print(f"OK   version {version}{suffix}: {names}")
     return 0

@@ -41,6 +41,25 @@ Zip this repository so `.claude-plugin/plugin.json` sits at the archive root, or
 
 Copy this repository, or symlink it, to `~/.cursor/plugins/local/make-the-point`. Reload the window so `.cursor-plugin/plugin.json` and `skills/` load.
 
+## Check which version is running
+
+Ask the skill itself. It answers from the instructions it actually loaded:
+
+```
+/make-the-point --version
+```
+
+The reply names the version and the folder it loaded from. A reply with `--debug` also ends with a `Plugin: make-the-point X.Y.Z` line.
+
+Each host also reports what it has installed:
+
+- Claude Code: `/plugin`, or `claude plugin list`.
+- Codex: `codex plugin list`.
+- ChatGPT and Claude Desktop: the version shown in the plugin or skill settings.
+- Cursor with a symlinked checkout: `version` in `.cursor-plugin/plugin.json`.
+
+A session keeps the version it loaded when it started. After an update, run `/reload-plugins` in Claude Code or start a new session, then ask `--version` again. If the two answers differ, the session is still on the old copy.
+
 ## Run the self-test
 
 From the repository root, run this command.

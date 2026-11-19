@@ -1,7 +1,7 @@
 {
   "name": "make-the-point",
   "displayName": "Make the Point",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Understand, construct, and communicate the central argument via the Minto Pyramid Principle. Canonical output is a testable ArgumentTree.",
   "author": {
     "name": "Unfriction"

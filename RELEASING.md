@@ -39,7 +39,7 @@ The release workflow enforces the contract. It runs the self-test and `scripts/c
 
 5. Watch the `release` workflow. It creates the GitHub release with the zip, the `.sha256` file and the notes.
 
-Bump the minor version for a breaking change while the major version is 0. Bump the patch version for a fix.
+The version also lives in the `This is make-the-point X.Y.Z.` line of `SKILL.md` and the `Plugin:` line of the example. `check-manifests.py` fails until every copy agrees. Bump the minor version for a breaking change while the major version is 0. Bump the patch version for a fix.
 
 ## Verify an install
 

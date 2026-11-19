@@ -83,6 +83,10 @@
       "type": "object",
       "additionalProperties": false,
       "required": ["id", "claim", "role"],
+      "anyOf": [
+        { "required": ["children"] },
+        { "required": ["support"], "properties": { "support": { "minItems": 1 } } }
+      ],
       "properties": {
         "id": {
           "type": "string",

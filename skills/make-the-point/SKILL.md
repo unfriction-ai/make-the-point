@@ -94,6 +94,9 @@ Put uncertainty in `notes`. Do not invent nodes.
 - Answer first. Never open with background that hides the governing thought.
 - One idea per node. Siblings same kind, mutually exclusive, jointly exhaustive for the parent question.
 - Vertical: every child must support its parent. Cut orphans.
+- Every node without `children` needs at least one `support` line taken from the source. If the source gives none, cut the node or fold it into its parent.
+- Node IDs are unique across the tree.
+- Put no links or citations in claims, support, or the diagram. The source goes in `source.ref`.
 - Horizontal: do not mix inductive grouping with a deductive chain on the same sibling set.
 - Analyze mode maps the source. Prefer the author's point. If the source has no clear point, say so in `notes` and still force a best-effort tree.
 - Construct mode invents structure for the user's intent, then drafts prose from it.

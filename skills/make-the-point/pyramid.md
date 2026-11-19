@@ -54,7 +54,7 @@ Order: governing thought → key-line points in array order → deepen only as n
 
 ## Surface table
 
-Reply with one diagram, then the JSON. The Markdown tree shows every node and support line. ANSI shows the governing thought and the key line only. Deeper children and support stay in the JSON.
+Reply with one diagram, then the JSON. The Markdown tree shows every node and support line. ANSI shows the governing thought and the key line only, and leaves deeper children and support to the JSON.
 
 | Host | Format |
 | --- | --- |
@@ -74,7 +74,7 @@ Do not use D3, a widget, or a second skill.
 - Do not bury the answer under chronology of research.
 - Do not use overlapping sibling claims ("better UX" and "easier to use").
 - Do not attach evidence that supports a different claim than its parent.
-- Do not put full support figures into diagram labels.
+- Do not put full support figures into ANSI labels.
 - Do not expand the ANSI diagram into every child node. Only the Markdown tree shows full depth.
 - Do not use D3, a widget, or a second skill.
 

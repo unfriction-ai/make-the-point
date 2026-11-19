@@ -6,8 +6,9 @@ description: >-
   is one ArgumentTree JSON object. Reply with the host diagram of the argument,
   then that JSON. Use ANSI boxes in a terminal and a nested Markdown tree of the
   full argument everywhere else. Prose comes only from the tree. Use for
-  /make-the-point or when the user wants pyramid structuring, SCQA, governing thought, key line, MECE argument trees, or
-  eval-friendly reading and writing of arguments.
+  /make-the-point or when the user wants pyramid structuring, SCQA, governing
+  thought, key line, MECE argument trees, or eval-friendly reading and writing
+  of arguments.
 disable-model-invocation: true
 ---
 
@@ -60,7 +61,7 @@ Fix until validate exits 0. Do not treat a freeform essay as done.
 
 Reply in this order.
 
-1. The diagram for one row of the surface table. The Markdown tree shows every node and support line. ANSI shows `governingThought` and `keyLine` only. Deeper `children` and `support` stay in the JSON.
+1. The diagram for one row of the surface table. The Markdown tree shows every node and support line. ANSI shows `governingThought` and `keyLine` only, and leaves deeper `children` and `support` to the JSON.
 2. The ArgumentTree JSON in a `json` fence. Evals score this object.
 3. An optional one-line summary after the JSON.
 

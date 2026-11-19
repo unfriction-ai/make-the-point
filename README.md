@@ -1,6 +1,6 @@
 # Make the Point
 
-Make the Point helps you understand, construct, and communicate a central argument with the Minto Pyramid Principle. The canonical output is an ArgumentTree JSON document. Prose is a view of that tree. The schema is `skills/make-the-point/argument-tree.schema.json`. The checker is `skills/make-the-point/scripts/validate-tree.py`. The plugin sends no data of its own. It uses only the text, link, or image you provide in the chat.
+Make the Point helps you understand, construct, and communicate a central argument with the Minto Pyramid Principle. The canonical output is an ArgumentTree JSON document. Prose is a view of that tree. Replies show the tree as nested Markdown. Run `/make-the-point --debug <source>` to also show the JSON. The schema is `skills/make-the-point/argument-tree.schema.json`. The checker is `skills/make-the-point/scripts/validate-tree.py`. The plugin sends no data of its own. It uses only the text, link, or image you provide in the chat.
 
 ## Install from GitHub (Claude Desktop)
 

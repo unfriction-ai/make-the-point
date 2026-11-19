@@ -361,6 +361,11 @@ def check_example(
         errors.append("JSON does not match the valid fixture")
     if diagram is not None:
         errors.extend(diagram_errors(diagram))
+    default_reply, _, debug_part = text.partition("## ArgumentTree JSON")
+    if "```json" in default_reply:
+        errors.append("default reply must not include a json fence")
+    if not debug_part.startswith(" (--debug only)"):
+        errors.append("JSON section must be headed '## ArgumentTree JSON (--debug only)'")
     if errors:
         print(f"FAIL {example}")
         for err in errors:

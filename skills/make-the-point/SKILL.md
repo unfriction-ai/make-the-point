@@ -4,7 +4,8 @@ description: >-
   Understand, construct, and communicate the central argument in writing with the
   Minto Pyramid Principle. Accepts text, a link, or an image. Canonical output
   is one ArgumentTree JSON object. Reply with a nested Markdown tree of the full
-  argument, then that JSON. Prose comes only from the tree. Use for
+  argument. Add the JSON only when invoked with --debug. Prose comes only from
+  the tree. Use for
   /make-the-point or when the user wants pyramid structuring, SCQA, governing
   thought, key line, MECE argument trees, or eval-friendly reading and writing
   of arguments.
@@ -27,6 +28,8 @@ One of:
 
 If the mode is unclear: **analyze** when source writing exists; **construct** when the user wants a message built.
 
+`--debug` anywhere in the arguments turns on debug output, as in `/make-the-point --debug <source>`. Remove it before you read the source.
+
 ## Workflow
 
 1. Ingest the source. Quote only what you need for `source.excerpt`.
@@ -46,7 +49,7 @@ From the repository root:
 python3 skills/make-the-point/scripts/validate-tree.py path/to/tree.json
 ```
 
-7. Reply with the diagram, then the JSON. Run the script when a shell is available. When it is not, write the tree by hand to the shape below. The script is optional. Do not block a reply on Python.
+7. Reply with the diagram. Add the JSON only with `--debug`. Run the script when a shell is available. When it is not, write the tree by hand to the shape below. The script is optional. Do not block a reply on Python.
 
 ```bash
 python3 ${CLAUDE_SKILL_DIR}/scripts/render-pyramid.py path/to/tree.json
@@ -58,11 +61,20 @@ Fix until validate exits 0. Do not treat a freeform essay as done.
 
 ## Output contract
 
-Reply in this order.
+Build and validate the JSON on every run. Show it only with `--debug`.
+
+Default reply, in this order:
 
 1. The diagram. It shows the full tree, every node and support line.
-2. The ArgumentTree JSON in a `json` fence. Evals score this object.
+2. An optional one-line summary.
+
+Reply with `--debug`, in this order:
+
+1. The diagram.
+2. The ArgumentTree JSON in a `json` fence.
 3. An optional one-line summary after the JSON.
+
+Evals invoke the skill with `--debug` and score the JSON object. Without `--debug`, the reply has no `json` fence.
 
 Every host gets the nested Markdown tree, terminals and Claude Code included. Claude Code renders it in the terminal. The governing thought is a quoted heading. The full tree follows as nested bullets, with each support line under its claim. Each claim prints in full.
 

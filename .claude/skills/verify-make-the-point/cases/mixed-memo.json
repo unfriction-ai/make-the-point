@@ -1,0 +1,31 @@
+{
+  "mode": "analyze",
+  "source": "To: Support leadership\nFrom: Hana Okafor, Support Operations\nSubject: Move tier-1 support to a follow-the-sun rotation\n\nWe should replace the night on-call shift with a follow-the-sun rotation across Dublin, Lisbon and Singapore starting in January.\n\nToo much of our load lands on one person at night. The Q3 Zendesk export shows that 41% of escalations arrived between 22:00 and 06:00 CET, when a single on-call engineer covers the whole queue.\n\nThe night shift is also expensive. Finance's October review puts overtime pay for night on-call at EUR 186,000 a year.\n\nPeople like working this way. Marta Lindqvist, who leads the Lisbon office, told me her team handled the late queue much better during the two weeks they tried a rotation in September.\n\nFinally, a rotation will cut customer churn in half, because customers will never wait overnight for an answer again.\n\nI'd like a decision at the December planning review.",
+  "claims": [
+    {
+      "match": [
+        "41",
+        "escalation"
+      ],
+      "expect": "supported"
+    },
+    {
+      "match": [
+        "186"
+      ],
+      "expect": "supported"
+    },
+    {
+      "match": [
+        "lisbon"
+      ],
+      "expect": "weak"
+    },
+    {
+      "match": [
+        "churn"
+      ],
+      "expect": "unsupported"
+    }
+  ]
+}

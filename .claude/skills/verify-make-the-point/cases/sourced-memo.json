@@ -1,0 +1,26 @@
+{
+  "mode": "analyze",
+  "expectNoFlags": true,
+  "source": "To: Engineering managers\nFrom: Priya Nair, Platform team\nSubject: Move CI runners to ARM instances\n\nWe should move our CI runner fleet from x86 to ARM instances this quarter.\n\nARM builds are faster. In our 12 November benchmark the platform team ran the full 1,240-job test suite on both fleets three times each: ARM finished in a median of 38 minutes, against 52 minutes on x86.\n\nARM runners are cheaper. The AWS on-demand price list for eu-west-1 puts the c7g.2xlarge at $0.29 an hour, against $0.34 for the c6i.2xlarge we run today. At last month's 41,000 runner-hours, that is about $2,050 a month.\n\nThe migration is small. The registry scan we ran on 4 November found that only 3 of our 212 Docker images lacked an arm64 variant. A rescan on 18 November confirmed that all three now publish one.\n\nI propose we switch the default runner label on 8 December.",
+  "claims": [
+    {
+      "match": [
+        "38",
+        "52"
+      ],
+      "expect": "supported"
+    },
+    {
+      "match": [
+        "c7g"
+      ],
+      "expect": "supported"
+    },
+    {
+      "match": [
+        "212"
+      ],
+      "expect": "supported"
+    }
+  ]
+}

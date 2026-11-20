@@ -154,7 +154,7 @@ def check(tag: str | None) -> list[str]:
 
     if tag is not None:
         if len(versions) != 1:
-            errors.append(f"tag {tag} cannot match: manifests carry {len(versions)} versions")
+            errors.append(f"tag {tag} cannot match: files carry {len(versions)} versions")
         else:
             expected = f"v{next(iter(versions))}"
             if tag != expected:

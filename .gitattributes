@@ -6,3 +6,5 @@
 /release-please-config.json export-ignore
 /.release-please-manifest.json export-ignore
 /CHANGELOG.md export-ignore
+/.claude export-ignore
+/.agents/skills export-ignore

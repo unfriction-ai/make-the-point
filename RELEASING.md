@@ -50,7 +50,12 @@ The workflow uses `GITHUB_TOKEN`. That token can open the release pull request o
 - release-please reads the commits inside each merged pull request, and also the pull request title in the body of its merge commit. A pull request whose commit subject equals its title appears twice in `CHANGELOG.md`. The duplicate changes only the notes, not the version.
 - The bot makes lightweight tags. They carry no message and no signature. The release notes name the commit SHA, and the `.sha256` file holds the SHA-256 of the zip.
 - For a few seconds after the release pull request merges, the catalogs on `main` name `vX.Y.Z` before the tag exists. A host that adds the marketplace in that window fails to install. Retry after the `release-please` run finishes.
-- GitHub holds the `check` workflow on the release pull request until a maintainer approves the run, because the bot opened the pull request. The `sync-versions` job runs the same checks before it pushes, and the `publish` job runs them again on the tag.
+- The release pull request usually shows no `check` result. GitHub does not run workflows for pull requests that `GITHUB_TOKEN` opens, so its runs stay waiting or end with no jobs. The `sync-versions` job runs the same checks before it pushes, and the `publish` job runs them again on the tag before it builds anything.
+- To publish a release again, for example after a failed `publish` job, run the workflow by hand with the tag. The job rebuilds the zip from the tag, replaces the assets and leaves notes that already hold the contract table:
+
+  ```bash
+  gh workflow run release-please.yml -f tag=vX.Y.Z
+  ```
 
 ## Verify an install
 

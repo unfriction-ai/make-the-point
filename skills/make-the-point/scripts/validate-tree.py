@@ -72,7 +72,7 @@ def walk_node(
     if role not in ROLES:
         fail(errors, f"{path}.role: must be one of {sorted(ROLES)}")
 
-    unknown = set(node) - {"id", "claim", "role", "children", "support"}
+    unknown = set(node) - {"id", "claim", "role", "children", "support", "evidenceGap"}
     if unknown:
         fail(errors, f"{path}: unexpected keys {sorted(unknown)}")
 
@@ -94,8 +94,19 @@ def walk_node(
                 if not isinstance(item, str) or not item.strip():
                     fail(errors, f"{path}.support[{i}]: must be a non-empty string")
 
-    if children is None and not support:
-        fail(errors, f"{path}: leaf needs 'support' or non-leaf needs 'children'")
+    evidence_gap = node.get("evidenceGap")
+    if evidence_gap is not None:
+        if not isinstance(evidence_gap, str) or not evidence_gap.strip():
+            fail(errors, f"{path}.evidenceGap: must be a non-empty string saying why the evidence is missing or thin")
+        if children is not None:
+            fail(errors, f"{path}.evidenceGap: only a leaf takes an evidenceGap; put doubts about a parent in 'notes'")
+
+    if children is None and not support and evidence_gap is None:
+        fail(
+            errors,
+            f"{path}: leaf has no evidence; add 'support' lines from the source, or keep the claim and add an "
+            "'evidenceGap' saying why the source does not back it",
+        )
 
 
 def validate_tree(data: Any) -> list[str]:
@@ -201,7 +212,7 @@ def validate_file(path: Path) -> int:
     return 0
 
 
-TEMPLATE_TREE = "valid-analyze"
+TEMPLATE_TREE = "valid-flagged"
 
 
 def run_self_test() -> int:

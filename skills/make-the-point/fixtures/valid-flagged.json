@@ -1,28 +1,3 @@
-# Markdown example
-
-Nested Markdown tree for every host. It uses no raw HTML. The governing thought is a quoted heading. The full tree follows as nested bullets, with each support line under its claim. The notes follow as a Caveats list.
-
-## Pyramid diagram
-
-> ### Appoint one backlog owner with explicit decision rights.
-
-- `K1` **Split ownership creates priority thrash.**
-  - `K1.1` Each team optimizes local goals.\
-    ↳ *Sprint goals diverged three times last quarter.*
-* `K2` **A single owner can sequence work against one outcome.**\
-  ↳ *Peer products that use one owner ship on a shared roadmap.*
-- `K3` **Decision rights remove escalation latency.**\
-  ↳ *Escalations currently take a median of five days.*
-
-**Caveats**
-
-- Source did not quantify thrash cost beyond escalation latency.
-
-## ArgumentTree JSON (--debug only)
-
-The reply adds this fence only when the skill runs with `--debug`.
-
-```json
 {
   "version": 1,
   "mode": "analyze",
@@ -56,7 +31,7 @@ The reply adds this fence only when the skill runs with `--debug`.
       "id": "K2",
       "claim": "A single owner can sequence work against one outcome.",
       "role": "reason",
-      "support": ["Peer products that use one owner ship on a shared roadmap."]
+      "evidenceGap": "The memo asserts this and names no team that works this way."
     },
     {
       "id": "K3",
@@ -66,10 +41,8 @@ The reply adds this fence only when the skill runs with `--debug`.
     }
   ],
   "prose": "Appoint one backlog owner with explicit decision rights. Split ownership creates priority thrash because each team optimizes local goals. A single owner can sequence work against one outcome. Decision rights remove escalation latency.",
-  "notes": ["Source did not quantify thrash cost beyond escalation latency."]
+  "notes": [
+    "Source did not quantify thrash cost beyond escalation latency.",
+    "The memo does not say who would hold the owner role."
+  ]
 }
-```
-
-Plugin: make-the-point 0.3.2
-
-Appoint one backlog owner with explicit decision rights.

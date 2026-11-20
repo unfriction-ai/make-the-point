@@ -3,10 +3,13 @@ name: release-please
 on:
   push:
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing release tag to publish again, such as v0.3.2
+        required: true
 
-permissions:
-  contents: write
-  pull-requests: write
+permissions: {}
 
 concurrency:
   group: release-please
@@ -14,7 +17,11 @@ concurrency:
 
 jobs:
   release-please:
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
     outputs:
       prs_created: ${{ steps.release.outputs.prs_created }}
       pr: ${{ steps.release.outputs.pr }}
@@ -31,6 +38,8 @@ jobs:
     needs: release-please
     if: needs.release-please.outputs.prs_created == 'true'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v7
         with:
@@ -59,20 +68,24 @@ jobs:
 
   publish:
     needs: release-please
-    if: needs.release-please.outputs.release_created == 'true'
+    if: >-
+      !cancelled() && (needs.release-please.outputs.release_created == 'true'
+      || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      TAG: ${{ inputs.tag || needs.release-please.outputs.tag_name }}
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: ${{ needs.release-please.outputs.tag_name }}
+          ref: refs/tags/${{ inputs.tag || needs.release-please.outputs.tag_name }}
       - uses: actions/setup-python@v7
         with:
           python-version: "3.11"
       - name: Self-test
         run: python3 skills/make-the-point/scripts/validate-tree.py --self-test
       - name: Check manifests against the tag
-        env:
-          TAG: ${{ needs.release-please.outputs.tag_name }}
         run: python3 scripts/check-manifests.py --tag "$TAG"
       - name: Build zip
         id: build
@@ -86,7 +99,6 @@ jobs:
       - name: Publish assets and notes
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ needs.release-please.outputs.tag_name }}
           VERSION: ${{ steps.build.outputs.version }}
           ZIP: ${{ steps.build.outputs.zip }}
         run: |

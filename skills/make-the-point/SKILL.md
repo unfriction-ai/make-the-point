@@ -140,4 +140,4 @@ From the repository root:
 python3 skills/make-the-point/scripts/validate-tree.py --self-test
 ```
 
-Must exit 0. Packaged fixtures encode one valid tree, one seven-claim wide tree, one five-level deep tree, and two deliberate failures. The example and the hand-writing template above must match the render of the valid tree.
+Must exit 0. Each `valid-*` fixture must pass and render byte for byte as the `.md` golden beside it. Each `invalid-*` fixture must fail. The example and the hand-writing template above must match the render of `valid-analyze.json`.

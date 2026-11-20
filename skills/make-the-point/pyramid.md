@@ -35,6 +35,10 @@ Frame the question the pyramid answers:
 
 A lower node exists only to support the node above (why / how / prove). If cutting a child does not weaken the parent, delete it.
 
+## Evidence
+
+A leaf's evidence is its `support` lines, taken from the source. When the source backs a claim thinly or not at all, or gives real evidence that does not establish the claim, keep the claim and write an `evidenceGap` that says why. Never invent support to fill the gap. The diagram marks a claim with no support lines **Unsupported** and a claim whose support falls short **Weak support**. Only leaves take an `evidenceGap`. The proposed action and its timing belong in the governing thought and are never flagged. Doubts about the tree as a whole go in `notes`, which the diagram lists under **Caveats**.
+
 ## Horizontal logic
 
 Siblings at one level:
@@ -54,7 +58,7 @@ Order: governing thought → key-line points in array order → deepen only as n
 
 ## Diagram
 
-Reply with one diagram. The diagram shows the full tree, every node and support line, then the tree's notes as a **Caveats** list. Add the JSON after it only when the skill runs with `--debug`.
+Reply with one diagram. The diagram shows the full tree, every node, support line, and evidence flag, then the tree's notes as a **Caveats** list. Add the JSON after it only when the skill runs with `--debug`.
 
 Every host gets the nested Markdown tree, terminals and Claude Code included. Claude Code renders it in the terminal. The governing thought is a quoted heading. The full tree follows as nested bullets, with each support line under its claim. Each claim prints in full, copied from the tree.
 
@@ -70,7 +74,8 @@ Do not use D3, a widget, or a second skill.
 - Do not bury the answer under chronology of research.
 - Do not use overlapping sibling claims ("better UX" and "easier to use").
 - Do not attach evidence that supports a different claim than its parent.
-- Do not drop nodes, support lines, or notes from the diagram.
+- Do not drop nodes, support lines, evidence flags, or notes from the diagram.
+- Do not cut a claim because the source does not back it, and do not invent support for it. Flag it with an `evidenceGap`.
 - Do not use D3, a widget, or a second skill.
 
 

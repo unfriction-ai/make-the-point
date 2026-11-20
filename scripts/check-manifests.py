@@ -78,7 +78,7 @@ TEXT_SOURCES = (
     TextSource("skills/make-the-point/SKILL.md", re.compile(r"^This is make-the-point (\S+)\.$", re.MULTILINE)),
     TextSource("skills/make-the-point/SKILL.md", re.compile(r"`make-the-point (\S+), loaded from ")),
     TextSource(
-        "skills/make-the-point/examples/valid-analyze-markdown.md",
+        "skills/make-the-point/examples/valid-flagged-markdown.md",
         re.compile(r"^Plugin: make-the-point (\S+)$", re.MULTILINE),
     ),
 )

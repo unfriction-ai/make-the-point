@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "mode": "analyze",
+  "source": {
+    "kind": "text"
+  },
+  "scqa": {
+    "situation": "We need a launch plan.",
+    "complication": "Engineering capacity is fixed.",
+    "question": "What should we cut?",
+    "answer": "Ship the core path only."
+  },
+  "governingThought": "Ship the core path only.",
+  "horizontalLogic": "inductive",
+  "keyLine": [
+    {
+      "id": "K1",
+      "claim": "Secondary surfaces can wait.",
+      "role": "reason",
+      "evidenceGap": "Deliberate failure: an evidenceGap on a node with children.",
+      "children": [
+        {
+          "id": "K1.1",
+          "claim": "Few users open the settings page.",
+          "role": "reason",
+          "support": ["Settings gets 2% of page views."]
+        }
+      ]
+    }
+  ]
+}

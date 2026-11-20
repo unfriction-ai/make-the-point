@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "mode": "construct",
+  "source": {
+    "kind": "text"
+  },
+  "scqa": {
+    "situation": "We need a launch plan.",
+    "complication": "Engineering capacity is fixed.",
+    "question": "What should we cut?",
+    "answer": "Ship the core path only."
+  },
+  "governingThought": "Ship the core path only.",
+  "horizontalLogic": "inductive",
+  "keyLine": [
+    {
+      "id": "K1",
+      "claim": "Secondary surfaces can wait.",
+      "role": "reason",
+      "support": ["One customer said they never open the settings page."],
+      "evidenceGap": "One customer's habit does not show what most users need."
+    }
+  ]
+}

@@ -78,7 +78,7 @@
     "notes": {
       "type": "array",
       "items": { "type": "string", "minLength": 1, "pattern": "\\S" },
-      "description": "Gaps, assumptions, or MECE risks. Not part of the argument. The diagram lists them under Caveats."
+      "description": "Doubts about the tree as a whole, such as a missing reason, an assumption, or a MECE risk. Doubt about one claim's evidence goes in that leaf's evidenceGap. Not part of the argument. The diagram lists them under Caveats."
     }
   },
   "$defs": {
@@ -88,8 +88,10 @@
       "required": ["id", "claim", "role"],
       "anyOf": [
         { "required": ["children"] },
-        { "required": ["support"], "properties": { "support": { "minItems": 1 } } }
+        { "required": ["support"], "properties": { "support": { "minItems": 1 } } },
+        { "required": ["evidenceGap"] }
       ],
+      "not": { "required": ["children", "evidenceGap"] },
       "properties": {
         "id": {
           "type": "string",
@@ -109,6 +111,12 @@
           "type": "array",
           "items": { "type": "string", "minLength": 1, "pattern": "\\S" },
           "description": "Facts or observations from the source that back this claim. No links or citations."
+        },
+        "evidenceGap": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S",
+          "description": "Why the evidence for this one claim is missing or thin. Leaves only. With no support lines the diagram marks the claim Unsupported, with support lines Weak support. No links or citations."
         }
       }
     }

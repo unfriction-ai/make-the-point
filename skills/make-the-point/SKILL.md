@@ -18,7 +18,7 @@ This is make-the-point 0.3.2.
 
 Build or extract an **ArgumentTree**. The tree is the product. The pyramid diagram and prose are views of the tree.
 
-Method: [Minto Pyramid Principle](https://piramideschrijven.com/minto-pyramid-principle/). Schema: [argument-tree.schema.json](argument-tree.schema.json). Rules: [pyramid.md](pyramid.md). Example: [valid-analyze-markdown.md](examples/valid-analyze-markdown.md).
+Method: [Minto Pyramid Principle](https://piramideschrijven.com/minto-pyramid-principle/). Schema: [argument-tree.schema.json](argument-tree.schema.json). Rules: [pyramid.md](pyramid.md). Example: [valid-flagged-markdown.md](examples/valid-flagged-markdown.md).
 
 ## Inputs
 
@@ -75,7 +75,7 @@ Build and validate the JSON on every run. Show it only with `--debug`.
 
 Default reply, in this order:
 
-1. The diagram. It shows the full tree, every node and support line, then every note under **Caveats**.
+1. The diagram. It shows the full tree, every node, support line, and evidence flag, then every note under **Caveats**.
 2. An optional one-line summary.
 
 Reply with `--debug`, in this order:
@@ -89,9 +89,9 @@ Start the reply with the diagram's first line, `> ### `. Put nothing before it: 
 
 Evals invoke the skill with `--debug` and score the JSON object. Without `--debug`, the reply has no `json` fence.
 
-Every host gets the nested Markdown tree, terminals and Claude Code included. Claude Code renders it in the terminal. The governing thought is a quoted heading. The full tree follows as nested bullets, with each support line under its claim. Each claim prints in full. The notes follow as a **Caveats** list.
+Every host gets the nested Markdown tree, terminals and Claude Code included. Claude Code renders it in the terminal. The governing thought is a quoted heading. The full tree follows as nested bullets, with each support line under its claim. Each claim prints in full. A claim with an `evidenceGap` gets a `⚠` line after its support. The notes follow as a **Caveats** list.
 
-The script writes this Markdown for the [example](examples/valid-analyze-markdown.md) tree. Without a shell, write the same shape by hand:
+The script writes this Markdown for the [example](examples/valid-flagged-markdown.md) tree. Without a shell, write the same shape by hand:
 
 ```markdown
 > ### Appoint one backlog owner with explicit decision rights.
@@ -100,33 +100,42 @@ The script writes this Markdown for the [example](examples/valid-analyze-markdow
   - `K1.1` Each team optimizes local goals.\
     ↳ *Sprint goals diverged three times last quarter.*
 * `K2` **A single owner can sequence work against one outcome.**\
-  ↳ *Peer products that use one owner ship on a shared roadmap.*
+  ⚠ **Unsupported.** The memo asserts this and names no team that works this way.
 - `K3` **Decision rights remove escalation latency.**\
   ↳ *Escalations currently take a median of five days.*
 
 **Caveats**
 
 - Source did not quantify thrash cost beyond escalation latency.
+- The memo does not say who would hold the owner role.
 ```
 
 - Start with `> ### ` and the governing thought. Add no bold to it.
 - Write one bullet per node: the ID in backticks, then the claim. Bold the key-line claims only.
 - Indent each child two spaces deeper than its parent. Put no blank line inside the tree.
 - Put support on the claim's own bullet, never on a new bullet. End the claim line with `\`, then write `↳ *support*` on the next line, indented two spaces past the bullet marker. With several support lines, end every line but the last with `\`.
-- Never put a backslash before a bullet marker. Escape only Markdown characters inside claim, support, and note text, such as `\$` or `\*`.
+- A node with an `evidenceGap` gets one more line in its item, after its support lines. Write `⚠ **Unsupported.** <evidenceGap>` when the node has no support lines and `⚠ **Weak support.** <evidenceGap>` when it has some. Indent it like a support line and end the line before it with `\`.
+- Never put a backslash before a bullet marker. Escape only Markdown characters inside claim, support, evidenceGap, and note text, such as `\$` or `\*`.
 - The `-` and `*` markers alternate between key lines that have children, which spaces the groups apart. By hand, `-` everywhere is fine.
 - When `notes` has entries, end with a blank line, the line `**Caveats**`, a blank line, and one `- ` bullet per note, in order. If a note starts with `#`, `-`, `+`, or a number and `.`, escape that marker, as in `\- ` or `1\. `. With no notes, end at the tree.
 
-Put uncertainty in `notes`. The reader sees each note under **Caveats**. Do not invent nodes.
+Put a doubt about one claim's evidence in that leaf's `evidenceGap`. Put doubts about the whole tree, such as a missing reason, an assumption, or a MECE risk, in `notes`. The reader sees both. Do not invent nodes.
 
 ## Decision rules
 
 - Answer first. Never open with background that hides the governing thought.
 - One idea per node. Siblings same kind, mutually exclusive, jointly exhaustive for the parent question.
 - Vertical: every child must support its parent. Cut orphans.
-- Every node without `children` needs at least one `support` line taken from the source. If the source gives none, cut the node or fold it into its parent.
+- Every node without `children` needs `support` lines taken from the source, an `evidenceGap`, or both. When the evidence is thin or missing, always flag the claim. Never cut it, never fold it into its parent, and never invent support for it:
+  - No support. Omit `support` and write an `evidenceGap` such as "The memo asserts this and names no team that works this way." The diagram marks the claim **Unsupported**.
+  - Thin support, such as one anecdote, the author's opinion, or an unnamed source. Keep the `support` lines and add an `evidenceGap` that says why they fall short. The diagram marks the claim **Weak support**.
+  - Real support that does not establish the claim, such as a before-and-after count offered as the cause, or one team's result stated for the whole company. Keep the `support` lines and add an `evidenceGap` that names the missing evidence. The diagram marks the claim **Weak support**. Support that directly measures the claim gets no `evidenceGap`. Do not flag concrete, attributed evidence that measures the claim, even if a bigger sample or a different method would be stronger. Put that kind of doubt in `notes`.
+  - Analyze mode keeps every claim the author makes, backed or not, and flags the ones the source does not back.
+  - Construct mode keeps every claim the argument needs. The `evidenceGap` names the evidence the user still has to find.
+  - Only a node without `children` takes an `evidenceGap`. A parent's evidence is its children.
+  - Put the proposed action and its timing in the governing thought, never in a leaf, and never flag them. The tree is the evidence for the proposal. A stated reason for the timing, such as a dependency deadline, is an ordinary claim.
 - Node IDs are unique across the tree.
-- Put no links or citations in claims, support, notes, or the diagram. The source goes in `source.ref`.
+- Put no links or citations in claims, support, evidenceGap, notes, or the diagram. The source goes in `source.ref`.
 - Horizontal: do not mix inductive grouping with a deductive chain on the same sibling set.
 - Analyze mode maps the source. Prefer the author's point. If the source has no clear point, say so in `notes` and still force a best-effort tree.
 - Construct mode invents structure for the user's intent, then drafts prose from it.
@@ -145,4 +154,4 @@ From the repository root:
 python3 skills/make-the-point/scripts/validate-tree.py --self-test
 ```
 
-Must exit 0. Each `valid-*` fixture must pass and render byte for byte as the `.md` golden beside it. Each `invalid-*` fixture must fail. The example and the hand-writing template above must match the render of `valid-analyze.json`.
+Must exit 0. Each `valid-*` fixture must pass and render byte for byte as the `.md` golden beside it. Each `invalid-*` fixture must fail. The example and the hand-writing template above must match the render of `valid-flagged.json`.

@@ -2,8 +2,9 @@
 """Render an ArgumentTree pyramid as a nested markdown tree.
 
 The governing thought is a quoted heading. Each node is a bullet under its
-parent, with each support line under its claim. The tree's notes follow as a
-Caveats list. Every host gets this tree.
+parent, with each support line under its claim and a flag line after them when
+the evidence is missing or thin. The tree's notes follow as a Caveats list.
+Every host gets this tree.
 
 Usage:
   python3 scripts/render-pyramid.py <tree.json>
@@ -46,6 +47,11 @@ def md_claim(node: dict[str, Any], depth: int) -> str:
     return (f"**{claim}**" if depth == 0 else claim) + ("" if role == "reason" else f" _{role}_")
 
 
+def md_flag(node: dict[str, Any]) -> str:
+    label = "Weak support" if node.get("support") else "Unsupported"
+    return f"⚠ **{label}.** {md_escape(node['evidenceGap'])}"
+
+
 def render_markdown(data: dict[str, Any]) -> str:
     out = [f"> ### {md_escape(data['governingThought'])}", ""]
 
@@ -53,6 +59,7 @@ def render_markdown(data: dict[str, Any]) -> str:
         indent = "  " * depth
         lines = [f"{indent}{marker} `{node['id']}` {md_claim(node, depth)}"]
         lines += [f"{indent}  ↳ *{md_escape(s)}*" for s in node.get("support") or []]
+        lines += [f"{indent}  {md_flag(node)}"] if "evidenceGap" in node else []
         # A trailing backslash is a hard break, so support stays inside its claim's item.
         out.append("\\\n".join(lines))
         for child in node.get("children") or []:
@@ -73,16 +80,20 @@ def check_markdown(data: dict[str, Any], diagram: str) -> list[str]:
         errors.append("diagram must not include raw HTML tags")
     if "```" in diagram:
         errors.append("diagram must not include code fences")
-    supports = 0
+    supports = flags = 0
 
     def walk(node: dict[str, Any], depth: int) -> None:
-        nonlocal supports
+        nonlocal supports, flags
         if f"`{node['id']}` {md_claim(node, depth)}" not in diagram:
             errors.append(f"{node['id']}: claim missing from the tree")
         for item in node.get("support") or []:
             supports += 1
             if f"↳ *{md_escape(item)}*" not in diagram:
                 errors.append(f"{node['id']}: support missing from the tree: {item!r}")
+        if "evidenceGap" in node:
+            flags += 1
+            if md_flag(node) not in diagram:
+                errors.append(f"{node['id']}: evidenceGap flag missing from the tree")
         for child in node.get("children") or []:
             walk(child, depth + 1)
 
@@ -94,11 +105,14 @@ def check_markdown(data: dict[str, Any], diagram: str) -> list[str]:
         errors.append("diagram must end with a Caveats list of every note, in order, exactly when the tree has notes")
     lines = tree.splitlines()
     arrows = [i for i, line in enumerate(lines) if line.lstrip().startswith("↳ ")]
+    flagged = [i for i, line in enumerate(lines) if line.lstrip().startswith("⚠ ")]
     if len(arrows) != supports:
         errors.append(f"tree has {len(arrows)} support lines, want {supports}")
-    for i in arrows:
+    if len(flagged) != flags:
+        errors.append(f"tree has {len(flagged)} evidenceGap flag lines, want {flags}")
+    for i in arrows + flagged:
         if not lines[i - 1].endswith("\\"):
-            errors.append(f"line {i + 1}: support must follow a hard break")
+            errors.append(f"line {i + 1}: support and flag lines must follow a hard break")
     return errors
 
 
@@ -108,7 +122,7 @@ def main(argv: list[str]) -> int:
     parser.add_argument(
         "--check",
         action="store_true",
-        help="Check the tree: heading, every claim, support line, and note, no HTML or fences",
+        help="Check the tree: heading, every claim, support line, evidenceGap flag, and note, no HTML or fences",
     )
     parser.add_argument(
         "--write",

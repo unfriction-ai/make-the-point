@@ -12,7 +12,7 @@
       "source": {
         "source": "github",
         "repo": "unfriction-ai/make-the-point",
-        "ref": "v0.3.1"
+        "ref": "v0.3.2"
       },
       "description": "Understand, construct, and communicate the central argument via the Minto Pyramid Principle. Canonical output is a testable ArgumentTree."
     }

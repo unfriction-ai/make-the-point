@@ -66,6 +66,6 @@ The reply adds this fence only when the skill runs with `--debug`.
 }
 ```
 
-Plugin: make-the-point 0.3.1
+Plugin: make-the-point 0.3.2
 
 Appoint one backlog owner with explicit decision rights.

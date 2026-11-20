@@ -14,7 +14,7 @@ disable-model-invocation: true
 
 # Make the point
 
-This is make-the-point 0.3.1.
+This is make-the-point 0.3.2.
 
 Build or extract an **ArgumentTree**. The tree is the product. The pyramid diagram and prose are views of the tree.
 
@@ -30,7 +30,7 @@ One of:
 
 If the mode is unclear: **analyze** when source writing exists; **construct** when the user wants a message built.
 
-`--version` as the only argument makes the reply one line: the version line above, then the base directory this skill loaded from, as in `make-the-point 0.3.1, loaded from <base directory>`. Build no tree and stop.
+`--version` as the only argument makes the reply one line: the version line above, then the base directory this skill loaded from, as in `make-the-point 0.3.2, loaded from <base directory>`. Build no tree and stop.
 
 `--debug` anywhere in the arguments turns on debug output, as in `/make-the-point --debug <source>`. Remove it before you read the source.
 

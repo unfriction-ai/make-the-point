@@ -20,7 +20,7 @@ A user asks for help building a case and offers one hard fact and one anecdote. 
 Preconditions:
 
 - `run.py --doctor --ref <ref>` prints `doctor <ref>: OK`.
-- `cases/thin-ask.json` plants `310` + `190` as supported and `dmitri` as weak.
+- `cases/thin-ask.json` plants `310` + `190` as weak, because a before-and-after count does not show the pilot caused the drop, and `dmitri` as weak.
 
 - **Run the ask.** Run `.claude/skills/verify-make-the-point/scripts/run.py --ref <ref> --cases thin-ask --repeat 3`. Each run line prints `valid=True`.
 - **Mode.** The `thin-ask` row shows `mode_ok` `3/3`.

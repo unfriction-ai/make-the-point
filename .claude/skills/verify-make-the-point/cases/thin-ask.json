@@ -1,0 +1,19 @@
+{
+  "mode": "construct",
+  "source": "Help me build the case to my director for letting our support team move to a four-day week. Here's what I have so far: during the six-week four-day pilot we ran in March, our open ticket backlog fell from 310 to 190. Also, Dmitri on my team told me he felt a lot less burned out during the pilot.",
+  "claims": [
+    {
+      "match": [
+        "310",
+        "190"
+      ],
+      "expect": "supported"
+    },
+    {
+      "match": [
+        "dmitri"
+      ],
+      "expect": "weak"
+    }
+  ]
+}

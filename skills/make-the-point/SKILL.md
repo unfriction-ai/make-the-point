@@ -129,9 +129,11 @@ Put a doubt about one claim's evidence in that leaf's `evidenceGap`. Put doubts 
 - Every node without `children` needs `support` lines taken from the source, an `evidenceGap`, or both. When the evidence is thin or missing, always flag the claim. Never cut it, never fold it into its parent, and never invent support for it:
   - No support. Omit `support` and write an `evidenceGap` such as "The memo asserts this and names no team that works this way." The diagram marks the claim **Unsupported**.
   - Thin support, such as one anecdote, the author's opinion, or an unnamed source. Keep the `support` lines and add an `evidenceGap` that says why they fall short. The diagram marks the claim **Weak support**.
+  - Real support that does not establish the claim, such as a before-and-after count offered as the cause, or one team's result stated for the whole company. Keep the `support` lines and add an `evidenceGap` that names the missing evidence. The diagram marks the claim **Weak support**. Support that directly measures the claim gets no `evidenceGap`.
   - Analyze mode keeps every claim the author makes, backed or not, and flags the ones the source does not back.
   - Construct mode keeps every claim the argument needs. The `evidenceGap` names the evidence the user still has to find.
   - Only a node without `children` takes an `evidenceGap`. A parent's evidence is its children.
+  - Put the proposed action and its timing in the governing thought, never in a leaf, and never flag them. The tree is the evidence for the proposal. A stated reason for the timing, such as a dependency deadline, is an ordinary claim.
 - Node IDs are unique across the tree.
 - Put no links or citations in claims, support, evidenceGap, notes, or the diagram. The source goes in `source.ref`.
 - Horizontal: do not mix inductive grouping with a deductive chain on the same sibling set.

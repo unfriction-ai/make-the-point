@@ -37,7 +37,7 @@ A lower node exists only to support the node above (why / how / prove). If cutti
 
 ## Evidence
 
-A leaf's evidence is its `support` lines, taken from the source. When the source backs a claim thinly or not at all, keep the claim and write an `evidenceGap` that says why. Never invent support to fill the gap. The diagram marks a claim with no support lines **Unsupported** and a claim whose support falls short **Weak support**. Only leaves take an `evidenceGap`. Doubts about the tree as a whole go in `notes`, which the diagram lists under **Caveats**.
+A leaf's evidence is its `support` lines, taken from the source. When the source backs a claim thinly or not at all, or gives real evidence that does not establish the claim, keep the claim and write an `evidenceGap` that says why. Never invent support to fill the gap. The diagram marks a claim with no support lines **Unsupported** and a claim whose support falls short **Weak support**. Only leaves take an `evidenceGap`. The proposed action and its timing belong in the governing thought and are never flagged. Doubts about the tree as a whole go in `notes`, which the diagram lists under **Caveats**.
 
 ## Horizontal logic
 

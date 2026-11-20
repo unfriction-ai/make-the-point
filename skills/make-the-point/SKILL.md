@@ -67,6 +67,8 @@ python3 ${CLAUDE_SKILL_DIR}/scripts/render-pyramid.py <tree>
 
 From the repository root, the script is `skills/make-the-point/scripts/render-pyramid.py`.
 
+When the script runs, copy its output into the reply exactly as printed, character for character. Keep every role tag such as `_evidence_`, every `\` line end, and every escape. Do not retype, reflow, or shorten it, and put no line before it.
+
 Validate and render only the file this run wrote. Fix until validate exits 0. Do not treat a freeform essay as done.
 
 ## Output contract

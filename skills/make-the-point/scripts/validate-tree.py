@@ -6,10 +6,11 @@ Usage:
   python3 scripts/validate-tree.py --self-test
   python3 scripts/validate-tree.py --fixtures
 
-Normal mode exits 0 only when every file passes. --self-test exits 0 when packaged
-fixtures match expected pass/fail, the example and the SKILL.md template match
-the renderer, the wide and deep fixtures pass --check, and renders of 1 to 12
-key-line claims pass --check.
+Normal mode exits 0 only when every file passes. --self-test exits 0 when every
+fixture passes or fails as its name says (valid-* or invalid-*), each valid
+fixture renders byte for byte as its .md golden and passes --check, the render
+without notes is a prefix of the golden, the example and the SKILL.md template
+match the renderer, and renders of 1 to 12 key-line claims pass --check.
 """
 
 from __future__ import annotations
@@ -200,63 +201,75 @@ def validate_file(path: Path) -> int:
     return 0
 
 
+TEMPLATE_TREE = "valid-analyze"
+
+
 def run_self_test() -> int:
     skill_dir = Path(__file__).resolve().parent.parent
     fixture_dir = skill_dir / "fixtures"
-    cases = [
-        (fixture_dir / "valid-analyze.json", True),
-        (fixture_dir / "valid-wide-keyline.json", True),
-        (fixture_dir / "valid-deep.json", True),
-        (fixture_dir / "invalid-missing-support.json", False),
-        (fixture_dir / "invalid-empty-support.json", False),
-    ]
-    failed = 0
-    for path, should_pass in cases:
-        try:
-            data = json.loads(path.read_text(encoding="utf-8"))
-            errors = validate_tree(data)
-        except (OSError, json.JSONDecodeError) as exc:
-            print(f"FAIL {path}: {exc}")
-            failed += 1
-            continue
-        passed = not errors
-        if passed == should_pass:
-            expectation = "OK" if should_pass else "FAIL(expected)"
-            print(f"{expectation:14} {path}")
-        else:
-            failed += 1
-            print(f"UNEXPECTED    {path} (wanted pass={should_pass})")
-            for err in errors:
-                print(f"  - {err}")
-
     render = Path(__file__).resolve().parent / "render-pyramid.py"
-    valid = fixture_dir / "valid-analyze.json"
-    fixture_json = valid.read_text(encoding="utf-8").strip()
-    failed += check_example(skill_dir / "examples" / "valid-analyze-markdown.md", valid, render, fixture_json)
-
-    wide = fixture_dir / "valid-wide-keyline.json"
-    deep = fixture_dir / "valid-deep.json"
-    for tree in (wide, deep):
-        check = subprocess.run(
-            [sys.executable, str(render), str(tree), "--check"],
-            check=False,
-            capture_output=True,
-            text=True,
-        )
-        sys.stdout.write(check.stdout)
-        sys.stderr.write(check.stderr)
-        if check.returncode != 0:
-            failed += 1
-
-    failed += check_key_line_counts(render, wide)
-    failed += check_skill_template(skill_dir / "SKILL.md", valid, render)
+    fixtures = sorted(fixture_dir.glob("*.json"))
+    failed = sum(check_fixture(path, path.name.startswith("valid-")) for path in fixtures)
+    failed += sum(check_golden(render, path) for path in fixtures if path.name.startswith("valid-"))
+    template = fixture_dir / f"{TEMPLATE_TREE}.json"
+    example = skill_dir / "examples" / f"{TEMPLATE_TREE}-markdown.md"
+    failed += check_example(example, template, render, template.read_text(encoding="utf-8").strip())
+    failed += check_key_line_counts(render, fixture_dir / "valid-wide-keyline.json")
+    failed += check_skill_template(skill_dir / "SKILL.md", template, render)
     return 1 if failed else 0
+
+
+def check_fixture(path: Path, should_pass: bool) -> int:
+    try:
+        errors = validate_tree(json.loads(path.read_text(encoding="utf-8")))
+    except (OSError, json.JSONDecodeError) as exc:
+        print(f"FAIL {path}: {exc}")
+        return 1
+    if (not errors) != should_pass:
+        print(f"UNEXPECTED    {path} (wanted pass={should_pass})")
+        for err in errors:
+            print(f"  - {err}")
+        return 1
+    print(f"{'OK' if should_pass else 'FAIL(expected)':14} {path}")
+    return 0
+
+
+def draw(render: Path, tree: Path, *flags: str) -> subprocess.CompletedProcess[str]:
+    return subprocess.run([sys.executable, str(render), str(tree), *flags], check=False, capture_output=True, text=True)
+
+
+def check_golden(render: Path, tree: Path) -> int:
+    """Pin each valid render byte for byte, so a renderer change shows up as a golden diff."""
+    golden = tree.with_suffix(".md")
+    check = draw(render, tree, "--check")
+    sys.stdout.write(check.stdout)
+    sys.stderr.write(check.stderr)
+    if check.returncode != 0:
+        return 1
+    if not golden.is_file():
+        print(f"FAIL {golden}: missing golden render")
+        return 1
+    want, got = golden.read_text(encoding="utf-8"), draw(render, tree).stdout
+    if got != want:
+        print(f"FAIL {golden}: render does not match")
+        sys.stdout.writelines(difflib.unified_diff(want.splitlines(True), got.splitlines(True), str(golden), "renderer"))
+        return 1
+    data = json.loads(tree.read_text(encoding="utf-8"))
+    with tempfile.TemporaryDirectory() as tmp:
+        bare = Path(tmp) / tree.name
+        bare.write_text(json.dumps({k: v for k, v in data.items() if k != "notes"}), encoding="utf-8")
+        tree_only = draw(render, bare).stdout
+    if not want.startswith(tree_only):
+        print(f"FAIL {golden}: dropping notes must drop only the Caveats list")
+        return 1
+    print(f"{'OK':14} {golden}")
+    return 0
 
 
 def check_skill_template(skill: Path, valid: Path, render: Path) -> int:
     """Hosts without a shell copy this fence by hand, so it must match the renderer byte for byte."""
     match = re.search(r"```markdown\n(.*?\n)```", skill.read_text(encoding="utf-8"), re.DOTALL)
-    drawn = subprocess.run([sys.executable, str(render), str(valid)], check=False, capture_output=True, text=True)
+    drawn = draw(render, valid)
     if match is None:
         print(f"FAIL {skill}: missing markdown fence")
         return 1
@@ -280,9 +293,7 @@ def check_key_line_counts(render: Path, wide: Path, counts: range = range(1, 13)
             key_line = [dict(claims[i % len(claims)], id=f"K{i + 1}") for i in range(n)]
             tree = Path(tmp) / f"n{n}.json"
             tree.write_text(json.dumps(dict(base, keyLine=key_line)), encoding="utf-8")
-            check = subprocess.run(
-                [sys.executable, str(render), str(tree), "--check"], check=False, capture_output=True, text=True
-            )
+            check = draw(render, tree, "--check")
             if check.returncode != 0:
                 failed += 1
                 print(f"FAIL n={n}")
@@ -321,23 +332,7 @@ def check_example(
     render: Path,
     fixture_json: str,
 ) -> int:
-    check = subprocess.run(
-        [sys.executable, str(render), str(valid), "--check"],
-        check=False,
-        capture_output=True,
-        text=True,
-    )
-    sys.stdout.write(check.stdout)
-    sys.stderr.write(check.stderr)
-    if check.returncode != 0:
-        return 1
-
-    drawn = subprocess.run(
-        [sys.executable, str(render), str(valid)],
-        check=False,
-        capture_output=True,
-        text=True,
-    )
+    drawn = draw(render, valid)
     if drawn.returncode != 0:
         print("FAIL renderer")
         sys.stdout.write(drawn.stdout)

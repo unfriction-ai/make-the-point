@@ -75,7 +75,7 @@ Build and validate the JSON on every run. Show it only with `--debug`.
 
 Default reply, in this order:
 
-1. The diagram. It shows the full tree, every node and support line.
+1. The diagram. It shows the full tree, every node and support line, then every note under **Caveats**.
 2. An optional one-line summary.
 
 Reply with `--debug`, in this order:
@@ -89,7 +89,7 @@ Start the reply with the diagram's first line, `> ### `. Put nothing before it: 
 
 Evals invoke the skill with `--debug` and score the JSON object. Without `--debug`, the reply has no `json` fence.
 
-Every host gets the nested Markdown tree, terminals and Claude Code included. Claude Code renders it in the terminal. The governing thought is a quoted heading. The full tree follows as nested bullets, with each support line under its claim. Each claim prints in full.
+Every host gets the nested Markdown tree, terminals and Claude Code included. Claude Code renders it in the terminal. The governing thought is a quoted heading. The full tree follows as nested bullets, with each support line under its claim. Each claim prints in full. The notes follow as a **Caveats** list.
 
 The script writes this Markdown for the [example](examples/valid-analyze-markdown.md) tree. Without a shell, write the same shape by hand:
 
@@ -103,16 +103,21 @@ The script writes this Markdown for the [example](examples/valid-analyze-markdow
   ↳ *Peer products that use one owner ship on a shared roadmap.*
 - `K3` **Decision rights remove escalation latency.**\
   ↳ *Escalations currently take a median of five days.*
+
+**Caveats**
+
+- Source did not quantify thrash cost beyond escalation latency.
 ```
 
 - Start with `> ### ` and the governing thought. Add no bold to it.
 - Write one bullet per node: the ID in backticks, then the claim. Bold the key-line claims only.
 - Indent each child two spaces deeper than its parent. Put no blank line inside the tree.
 - Put support on the claim's own bullet, never on a new bullet. End the claim line with `\`, then write `↳ *support*` on the next line, indented two spaces past the bullet marker. With several support lines, end every line but the last with `\`.
-- Never put a backslash before a bullet marker. Escape only Markdown characters inside claim and support text, such as `\$` or `\*`.
+- Never put a backslash before a bullet marker. Escape only Markdown characters inside claim, support, and note text, such as `\$` or `\*`.
 - The `-` and `*` markers alternate between key lines that have children, which spaces the groups apart. By hand, `-` everywhere is fine.
+- When `notes` has entries, end with a blank line, the line `**Caveats**`, a blank line, and one `- ` bullet per note, in order. If a note starts with `#`, `-`, `+`, or a number and `.`, escape that marker, as in `\- ` or `1\. `. With no notes, end at the tree.
 
-Put uncertainty in `notes`. Do not invent nodes.
+Put uncertainty in `notes`. The reader sees each note under **Caveats**. Do not invent nodes.
 
 ## Decision rules
 
@@ -121,7 +126,7 @@ Put uncertainty in `notes`. Do not invent nodes.
 - Vertical: every child must support its parent. Cut orphans.
 - Every node without `children` needs at least one `support` line taken from the source. If the source gives none, cut the node or fold it into its parent.
 - Node IDs are unique across the tree.
-- Put no links or citations in claims, support, or the diagram. The source goes in `source.ref`.
+- Put no links or citations in claims, support, notes, or the diagram. The source goes in `source.ref`.
 - Horizontal: do not mix inductive grouping with a deductive chain on the same sibling set.
 - Analyze mode maps the source. Prefer the author's point. If the source has no clear point, say so in `notes` and still force a best-effort tree.
 - Construct mode invents structure for the user's intent, then drafts prose from it.
@@ -140,4 +145,4 @@ From the repository root:
 python3 skills/make-the-point/scripts/validate-tree.py --self-test
 ```
 
-Must exit 0. Packaged fixtures encode one valid tree, one seven-claim wide tree, one five-level deep tree, and two deliberate failures. The example and the hand-writing template above must match the render of the valid tree.
+Must exit 0. Each `valid-*` fixture must pass and render byte for byte as the `.md` golden beside it. Each `invalid-*` fixture must fail. The example and the hand-writing template above must match the render of `valid-analyze.json`.

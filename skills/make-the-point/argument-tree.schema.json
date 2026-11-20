@@ -78,7 +78,7 @@
     "notes": {
       "type": "array",
       "items": { "type": "string", "minLength": 1, "pattern": "\\S" },
-      "description": "Gaps, assumptions, or MECE risks. Not part of the argument."
+      "description": "Gaps, assumptions, or MECE risks. Not part of the argument. The diagram lists them under Caveats."
     }
   },
   "$defs": {

@@ -19,3 +19,7 @@
     ↳ *Current Redis cluster invoice, averaged over 12 months.*
   - `K3.2` A dual-write flag makes rollback a config change.\
     ↳ *The flag pattern is already used for the billing migration.*
+
+**Caveats**
+
+- The RFC does not estimate migration engineering effort.

@@ -2,7 +2,8 @@
 """Render an ArgumentTree pyramid as a nested markdown tree.
 
 The governing thought is a quoted heading. Each node is a bullet under its
-parent, with each support line under its claim. Every host gets this tree.
+parent, with each support line under its claim. The tree's notes follow as a
+Caveats list. Every host gets this tree.
 
 Usage:
   python3 scripts/render-pyramid.py <tree.json>
@@ -28,6 +29,17 @@ def md_escape(text: str) -> str:
     return re.sub(r":([a-z0-9_+-]+):", r"\\:\1:", text)
 
 
+def md_escape_line(text: str) -> str:
+    """md_escape, plus a leading heading or list marker escaped, for text that starts a line."""
+    text = re.sub(r"^(#{1,6}|[-+])(?=\s|$)", r"\\\1", md_escape(text))
+    return re.sub(r"^(\d{1,9})([.)])(?=\s|$)", r"\1\\\2", text)
+
+
+def caveats(data: dict[str, Any]) -> list[str]:
+    notes = data.get("notes") or []
+    return ["", "**Caveats**", ""] + [f"- {md_escape_line(note)}" for note in notes] if notes else []
+
+
 def md_claim(node: dict[str, Any], depth: int) -> str:
     claim = md_escape(node["claim"])
     role = node.get("role", "reason")
@@ -50,7 +62,7 @@ def render_markdown(data: dict[str, Any]) -> str:
     grouped = any(node.get("children") for node in data["keyLine"])
     for i, node in enumerate(data["keyLine"]):
         walk(node, 0, "-*"[i % 2] if grouped else "-")
-    return "\n".join(out) + "\n"
+    return "\n".join(out + caveats(data)) + "\n"
 
 
 def check_markdown(data: dict[str, Any], diagram: str) -> list[str]:
@@ -76,7 +88,11 @@ def check_markdown(data: dict[str, Any], diagram: str) -> list[str]:
 
     for node in data["keyLine"]:
         walk(node, 0)
-    lines = diagram.splitlines()
+    block = "\n".join(caveats(data))
+    tree, _, rest = diagram.partition("\n\n**Caveats**\n")
+    if not diagram.endswith(block + "\n") or (not block and rest):
+        errors.append("diagram must end with a Caveats list of every note, in order, exactly when the tree has notes")
+    lines = tree.splitlines()
     arrows = [i for i, line in enumerate(lines) if line.lstrip().startswith("↳ ")]
     if len(arrows) != supports:
         errors.append(f"tree has {len(arrows)} support lines, want {supports}")
@@ -92,7 +108,7 @@ def main(argv: list[str]) -> int:
     parser.add_argument(
         "--check",
         action="store_true",
-        help="Check the tree: heading, every claim and support line, no HTML or fences",
+        help="Check the tree: heading, every claim, support line, and note, no HTML or fences",
     )
     parser.add_argument(
         "--write",

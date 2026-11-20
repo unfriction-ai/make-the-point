@@ -14,3 +14,7 @@
   ↳ *Support note 6.*
 - `K7` **Keep slack in resources for the jump.**\
   ↳ *Support note 7.*
+
+**Caveats**
+
+- Synthetic wide keyLine fixture for layout readability.

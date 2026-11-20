@@ -7,3 +7,7 @@
   ↳ *Peer products that use one owner ship on a shared roadmap.*
 - `K3` **Decision rights remove escalation latency.**\
   ↳ *Escalations currently take a median of five days.*
+
+**Caveats**
+
+- Source did not quantify thrash cost beyond escalation latency.

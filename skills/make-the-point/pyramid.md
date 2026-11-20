@@ -54,7 +54,7 @@ Order: governing thought → key-line points in array order → deepen only as n
 
 ## Diagram
 
-Reply with one diagram. The diagram shows the full tree, every node and support line. Add the JSON after it only when the skill runs with `--debug`.
+Reply with one diagram. The diagram shows the full tree, every node and support line, then the tree's notes as a **Caveats** list. Add the JSON after it only when the skill runs with `--debug`.
 
 Every host gets the nested Markdown tree, terminals and Claude Code included. Claude Code renders it in the terminal. The governing thought is a quoted heading. The full tree follows as nested bullets, with each support line under its claim. Each claim prints in full, copied from the tree.
 
@@ -70,7 +70,7 @@ Do not use D3, a widget, or a second skill.
 - Do not bury the answer under chronology of research.
 - Do not use overlapping sibling claims ("better UX" and "easier to use").
 - Do not attach evidence that supports a different claim than its parent.
-- Do not drop nodes or support lines from the diagram.
+- Do not drop nodes, support lines, or notes from the diagram.
 - Do not use D3, a widget, or a second skill.
 
 

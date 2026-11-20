@@ -260,7 +260,7 @@ def check_golden(render: Path, tree: Path) -> int:
         bare.write_text(json.dumps({k: v for k, v in data.items() if k != "notes"}), encoding="utf-8")
         tree_only = draw(render, bare).stdout
     if not want.startswith(tree_only):
-        print(f"FAIL {golden}: dropping notes must change only what follows the tree")
+        print(f"FAIL {golden}: dropping notes must drop only the Caveats list")
         return 1
     print(f"{'OK':14} {golden}")
     return 0

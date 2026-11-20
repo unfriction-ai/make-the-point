@@ -1,6 +1,6 @@
 # Markdown example
 
-Nested Markdown tree for every host. It uses no raw HTML. The governing thought is a quoted heading. The full tree follows as nested bullets, with each support line under its claim.
+Nested Markdown tree for every host. It uses no raw HTML. The governing thought is a quoted heading. The full tree follows as nested bullets, with each support line under its claim. The notes follow as a Caveats list.
 
 ## Pyramid diagram
 
@@ -13,6 +13,10 @@ Nested Markdown tree for every host. It uses no raw HTML. The governing thought 
   ↳ *Peer products that use one owner ship on a shared roadmap.*
 - `K3` **Decision rights remove escalation latency.**\
   ↳ *Escalations currently take a median of five days.*
+
+**Caveats**
+
+- Source did not quantify thrash cost beyond escalation latency.
 
 ## ArgumentTree JSON (--debug only)
 

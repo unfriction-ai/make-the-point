@@ -72,4 +72,4 @@ Exit code 0 means the packaged fixtures match the expected pass and the expected
 
 ## Releases
 
-Each release is a tag, a commit, one version in every manifest, and a zip with its SHA-256. [RELEASING.md](RELEASING.md) states the contract, how to cut a release, and how to verify an install.
+Each release is a tag, a commit, one version in every manifest, and a zip with its SHA-256. Both marketplace catalogs pin the latest release tag, so an install from GitHub gets released code, not the tip of `main`. [RELEASING.md](RELEASING.md) states the contract, how to cut a release, and how to verify an install.

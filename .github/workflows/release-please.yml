@@ -1,0 +1,116 @@
+name: release-please
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: release-please
+  cancel-in-progress: false
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    outputs:
+      prs_created: ${{ steps.release.outputs.prs_created }}
+      pr: ${{ steps.release.outputs.pr }}
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+    steps:
+      - uses: googleapis/release-please-action@v5
+        id: release
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+  sync-versions:
+    needs: release-please
+    if: needs.release-please.outputs.prs_created == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ fromJSON(needs.release-please.outputs.pr).headBranchName }}
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+      - name: Write the release version into every version source
+        run: |
+          version=$(python3 -c 'import json; print(json.load(open(".release-please-manifest.json"))["."])')
+          python3 scripts/check-manifests.py --set-version "$version"
+      - name: Self-test
+        run: python3 skills/make-the-point/scripts/validate-tree.py --self-test
+      - name: Commit and push
+        env:
+          BRANCH: ${{ fromJSON(needs.release-please.outputs.pr).headBranchName }}
+        run: |
+          if git diff --quiet; then
+            echo "Version sources already match the release PR."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "chore(release): sync version sources"
+          git push origin "HEAD:refs/heads/$BRANCH"
+
+  publish:
+    needs: release-please
+    if: needs.release-please.outputs.release_created == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.release-please.outputs.tag_name }}
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.11"
+      - name: Self-test
+        run: python3 skills/make-the-point/scripts/validate-tree.py --self-test
+      - name: Check manifests against the tag
+        env:
+          TAG: ${{ needs.release-please.outputs.tag_name }}
+        run: python3 scripts/check-manifests.py --tag "$TAG"
+      - name: Build zip
+        id: build
+        run: |
+          version=$(python3 -c 'import json; print(json.load(open("plugin.json"))["version"])')
+          zip="make-the-point-$version.zip"
+          git archive --format=zip --prefix=make-the-point/ -o "$zip" HEAD
+          sha256sum "$zip" > "$zip.sha256"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "zip=$zip" >> "$GITHUB_OUTPUT"
+      - name: Publish assets and notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.release-please.outputs.tag_name }}
+          VERSION: ${{ steps.build.outputs.version }}
+          ZIP: ${{ steps.build.outputs.zip }}
+        run: |
+          gh release upload "$TAG" "$ZIP" "$ZIP.sha256" --clobber
+          changelog=$(gh release view "$TAG" --json body -q .body)
+          if printf '%s\n' "$changelog" | grep -q '^| Field | Value |$'; then
+            echo "Release notes already hold the contract table."
+            exit 0
+          fi
+          commit=$(git rev-parse HEAD)
+          sha=$(cut -d' ' -f1 "$ZIP.sha256")
+          cat > notes.md <<NOTES
+          | Field | Value |
+          | --- | --- |
+          | Tag | \`$TAG\` |
+          | Commit | \`$commit\` |
+          | Plugin version | \`$VERSION\` |
+          | Asset | \`$ZIP\` |
+          | SHA-256 | \`$sha\` |
+
+          The ChatGPT install of this release shows version $VERSION.
+          Verify a download with \`shasum -a 256 -c $ZIP.sha256\`.
+          See [RELEASING.md](https://github.com/$GITHUB_REPOSITORY/blob/$commit/RELEASING.md).
+
+          NOTES
+          printf '%s\n' "$changelog" >> notes.md
+          gh release edit "$TAG" --title "make-the-point $VERSION" --notes-file notes.md
